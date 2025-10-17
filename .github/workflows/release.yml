@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  build-and-release:
+    name: Build and Create Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run type check
+        run: npx tsc --noEmit
+
+      - name: Build project
+        run: npm run build
+
+      - name: Create build archive
+        run: |
+          cd dist
+          tar -czf ../meal-tracker-app-${{ github.ref_name }}.tar.gz .
+          cd ..
+          zip -r meal-tracker-app-${{ github.ref_name }}.zip dist/
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          echo "## Changes in this Release" > CHANGELOG.md
+          git log $(git describe --tags --abbrev=0 HEAD^)..HEAD --pretty=format:"- %s (%h)" >> CHANGELOG.md || echo "- Initial release" >> CHANGELOG.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            meal-tracker-app-${{ github.ref_name }}.tar.gz
+            meal-tracker-app-${{ github.ref_name }}.zip
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts-${{ github.ref_name }}
+          path: |
+            meal-tracker-app-${{ github.ref_name }}.tar.gz
+            meal-tracker-app-${{ github.ref_name }}.zip
+          retention-days: 30

@@ -1,0 +1,102 @@
+name: PR Preview Deployment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches: [master, main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  deploy-preview:
+    name: Deploy Preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Only run if PR is not closed
+    if: github.event.action != 'closed'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+        env:
+          # Set base URL for preview deployment if needed
+          VITE_PREVIEW_MODE: 'true'
+
+      - name: Upload preview artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-build-${{ github.event.pull_request.number }}
+          path: dist/
+          retention-days: 7
+
+      - name: Comment preview info on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const runId = context.runId;
+            const body = `## Preview Build Ready
+
+            A preview build has been generated for this PR.
+
+            **Build Details:**
+            - PR: #${prNumber}
+            - Commit: ${context.sha.substring(0, 7)}
+            - Workflow Run: [View Details](${context.payload.repository.html_url}/actions/runs/${runId})
+
+            **To test locally:**
+            1. Download the preview build artifact from the workflow run
+            2. Extract and serve with: \`npx serve dist\`
+
+            **Note:** To deploy this to a preview environment, you can:
+            - Use Vercel/Netlify preview deployments (configure in separate workflows)
+            - Use GitHub Pages with separate branch deployment
+            - Use your own preview infrastructure
+
+            `;
+
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: body
+            });
+
+  cleanup-preview:
+    name: Cleanup Preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Only run when PR is closed
+    if: github.event.action == 'closed'
+
+    steps:
+      - name: Comment cleanup info on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const body = `## Preview Cleanup
+
+            This PR has been closed. Preview artifacts will be automatically cleaned up after their retention period (7 days).
+            `;
+
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: body
+            });
