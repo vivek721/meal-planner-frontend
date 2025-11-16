@@ -22,26 +22,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     // Check if user is authenticated on mount
-    const checkAuth = async () => {
+    const checkAuth = () => {
       if (AuthService.checkAuth()) {
-        // Try to refresh user data from backend
-        const currentUser = await AuthService.refreshUser();
-        if (currentUser) {
-          setUser(currentUser);
-        }
+        const currentUser = AuthService.getUser();
+        setUser(currentUser);
       }
       setLoading(false);
     };
 
     checkAuth();
-
-    // Listen for unauthorized events from API client
-    const handleUnauthorized = () => {
-      setUser(null);
-    };
-
-    window.addEventListener('unauthorized', handleUnauthorized);
-    return () => window.removeEventListener('unauthorized', handleUnauthorized);
   }, []);
 
   const login = async (email: string, password: string, rememberMe: boolean = false) => {
@@ -64,18 +53,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = async () => {
-    setLoading(true);
-    try {
-      await AuthService.logout();
-      setUser(null);
-    } catch (error) {
-      // Even if logout fails on backend, clear local state
-      console.error('Logout error:', error);
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
+  const logout = () => {
+    AuthService.logout();
+    setUser(null);
   };
 
   const value: AuthContextType = {
