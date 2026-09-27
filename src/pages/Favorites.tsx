@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Search, Filter, SortAsc, Home } from 'lucide-react';
+import { Heart, Search, Filter, Home } from 'lucide-react';
 import { useRecipes } from '../contexts/RecipeContext';
-import { useAuth } from '../contexts/AuthContext';
 import { Breadcrumb } from '../components/atoms/Breadcrumb';
 import { Input } from '../components/atoms/Input';
 import { Button } from '../components/atoms/Button';
@@ -14,7 +13,6 @@ type SortOption = 'name' | 'recent' | 'time' | 'rating';
 
 export const Favorites: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { favoriteRecipes, loadFavorites } = useRecipes();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,7 +20,9 @@ export const Favorites: React.FC = () => {
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
 
-  const categories = ['All', 'Breakfast', 'Lunch', 'Dinner', 'Snack', 'Dessert'];
+  const categories = ['All', 'Breakfast', 'Lunch', 'Dinner', 'Snack', 'Dessert'].map(
+    (category) => ({ value: category, label: category })
+  );
   const sortOptions = [
     { value: 'recent', label: 'Recently Added' },
     { value: 'name', label: 'Name (A-Z)' },

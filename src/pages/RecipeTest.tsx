@@ -8,7 +8,7 @@ import { Recipe } from '../types/recipe.types';
 export const RecipeTest: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const { searchResults, totalResults, favoriteRecipes } = useRecipes();
+  const { totalResults, favoriteRecipes } = useRecipes();
 
   // Load initial recipes
   useEffect(() => {

@@ -29,7 +29,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
   const { isFavorite, toggleFavorite } = useRecipes();
   const favorited = isFavorite(recipe.id);
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = () => {
     if (onClick && !isDragging) {
       onClick();
     }

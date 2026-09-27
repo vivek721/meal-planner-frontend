@@ -7,7 +7,6 @@ import { Input } from '../components/atoms/Input';
 import { Button } from '../components/atoms/Button';
 import { Dropdown } from '../components/atoms/Dropdown';
 import { Checkbox } from '../components/atoms/Checkbox';
-import { Badge } from '../components/atoms/Badge';
 import { RecipeCard } from '../components/molecules/RecipeCard';
 import RecipeService, { SortOption } from '../services/RecipeService';
 import type { Recipe, RecipeFilter, MealCategory } from '../types/recipe.types';

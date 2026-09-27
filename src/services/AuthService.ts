@@ -27,7 +27,7 @@ class AuthService {
   /**
    * Login with email and password
    */
-  async login(email: string, password: string, rememberMe: boolean = false): Promise<User> {
+  async login(email: string, password: string, _rememberMe: boolean = false): Promise<User> {
     try {
       const response: AuthResponse = await authApi.login({ email, password });
 
