@@ -148,7 +148,7 @@ npm run test:report
 
 Tests are configured in `playwright.config.ts`:
 
-- **Base URL**: http://localhost:3001
+- **Base URL**: http://localhost:3000 (the Vite dev server; the backend runs on 3001)
 - **Browsers**: Chromium, Firefox, WebKit, Mobile Chrome, Mobile Safari
 - **Retries**: 2 (in CI), 0 (local)
 - **Screenshots**: On failure

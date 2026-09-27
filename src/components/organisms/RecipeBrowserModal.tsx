@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Search, X, Filter } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Search, Filter } from 'lucide-react';
 import { Modal } from '../atoms/Modal';
 import { Input } from '../atoms/Input';
 import { Button } from '../atoms/Button';
 import { Dropdown } from '../atoms/Dropdown';
 import { RecipeCard } from '../molecules/RecipeCard';
 import RecipeService from '../../services/RecipeService';
-import type { Recipe, RecipeFilter } from '../../types/recipe.types';
+import type { MealCategory, Recipe, RecipeFilter } from '../../types/recipe.types';
 
 interface RecipeBrowserModalProps {
   isOpen: boolean;
@@ -16,6 +16,16 @@ interface RecipeBrowserModalProps {
   mealType?: string;
 }
 
+const ALL = 'All';
+const categories: MealCategory[] = ['Breakfast', 'Lunch', 'Dinner', 'Snack', 'Dessert'];
+
+const toOptions = (values: string[]) =>
+  [ALL, ...values].map((value) => ({ value, label: value }));
+
+const categoryOptions = toOptions(categories);
+const cuisineOptions = toOptions(RecipeService.getAvailableCuisines());
+const dietaryTagOptions = toOptions(RecipeService.getAvailableDietaryTags());
+
 export const RecipeBrowserModal: React.FC<RecipeBrowserModalProps> = ({
   isOpen,
   onClose,
@@ -24,69 +34,21 @@ export const RecipeBrowserModal: React.FC<RecipeBrowserModalProps> = ({
   mealType,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
+  const [category, setCategory] = useState(ALL);
+  const [cuisine, setCuisine] = useState(ALL);
+  const [dietaryTag, setDietaryTag] = useState(ALL);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [filters, setFilters] = useState<RecipeFilter>({});
-  const [isLoading, setIsLoading] = useState(true);
 
-  const categories = ['All', 'Breakfast', 'Lunch', 'Dinner', 'Snack', 'Dessert'];
-  const cuisines = ['All', 'Italian', 'Mexican', 'Asian', 'American', 'Mediterranean', 'Indian'];
-  const dietaryTags = ['All', 'Vegan', 'Vegetarian', 'Gluten-Free', 'Keto', 'Paleo'];
-
-  useEffect(() => {
-    if (isOpen) {
-      loadRecipes();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    applyFilters();
-  }, [searchQuery, filters, recipes]);
-
-  const loadRecipes = async () => {
-    setIsLoading(true);
-    try {
-      const allRecipes = await RecipeService.getRecipes(filters);
-      setRecipes(allRecipes);
-    } catch (error) {
-      console.error('Failed to load recipes:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const applyFilters = () => {
-    let filtered = [...recipes];
-
-    // Search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (recipe) =>
-          recipe.name.toLowerCase().includes(query) ||
-          recipe.cuisine.toLowerCase().includes(query) ||
-          recipe.ingredients.some((ing) => ing.name.toLowerCase().includes(query))
-      );
-    }
-
-    // Category filter
-    if (filters.category && filters.category !== 'All') {
-      filtered = filtered.filter((recipe) => recipe.category === filters.category);
-    }
-
-    // Cuisine filter
-    if (filters.cuisine && filters.cuisine !== 'All') {
-      filtered = filtered.filter((recipe) => recipe.cuisine === filters.cuisine);
-    }
-
-    // Dietary tag filter
-    if (filters.dietaryTag && filters.dietaryTag !== 'All') {
-      filtered = filtered.filter((recipe) => recipe.dietaryTags.includes(filters.dietaryTag!));
-    }
-
-    setFilteredRecipes(filtered);
-  };
+  // Filtering, search and sorting all live in RecipeService
+  const filteredRecipes = useMemo(() => {
+    const filter: RecipeFilter = {
+      searchQuery,
+      category: category === ALL ? undefined : [category as MealCategory],
+      cuisine: cuisine === ALL ? undefined : [cuisine],
+      dietaryTags: dietaryTag === ALL ? undefined : [dietaryTag],
+    };
+    return RecipeService.searchRecipes(filter, { sortBy: 'popular' }).recipes;
+  }, [searchQuery, category, cuisine, dietaryTag]);
 
   const handleRecipeClick = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
@@ -101,31 +63,21 @@ export const RecipeBrowserModal: React.FC<RecipeBrowserModalProps> = ({
 
   const handleClose = () => {
     setSearchQuery('');
-    setFilters({});
+    setCategory(ALL);
+    setCuisine(ALL);
+    setDietaryTag(ALL);
     setSelectedRecipe(null);
     onClose();
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} size="xl">
-      <div className="flex flex-col h-[80vh] max-h-[800px]">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Add Recipe</h2>
-            {dayName && mealType && (
-              <p className="text-sm text-gray-600 mt-1">
-                to {dayName} {mealType}
-              </p>
-            )}
-          </div>
-          <button
-            onClick={handleClose}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Modal isOpen={isOpen} onClose={handleClose} title="Add Recipe" size="xl">
+      <div className="flex flex-col h-[70vh] max-h-[700px]">
+        {dayName && mealType && (
+          <p className="text-sm text-gray-600 mb-4">
+            to {dayName} {mealType}
+          </p>
+        )}
 
         {/* Search and filters */}
         <div className="mb-6 space-y-4">
@@ -144,25 +96,23 @@ export const RecipeBrowserModal: React.FC<RecipeBrowserModalProps> = ({
           {/* Filter dropdowns */}
           <div className="flex flex-wrap gap-3">
             <Dropdown
-              value={filters.category || 'All'}
-              onChange={(value) => setFilters({ ...filters, category: value === 'All' ? undefined : value })}
-              options={categories}
+              value={category}
+              onChange={setCategory}
+              options={categoryOptions}
               placeholder="Category"
               className="flex-1 min-w-[150px]"
             />
             <Dropdown
-              value={filters.cuisine || 'All'}
-              onChange={(value) => setFilters({ ...filters, cuisine: value === 'All' ? undefined : value })}
-              options={cuisines}
+              value={cuisine}
+              onChange={setCuisine}
+              options={cuisineOptions}
               placeholder="Cuisine"
               className="flex-1 min-w-[150px]"
             />
             <Dropdown
-              value={filters.dietaryTag || 'All'}
-              onChange={(value) =>
-                setFilters({ ...filters, dietaryTag: value === 'All' ? undefined : value })
-              }
-              options={dietaryTags}
+              value={dietaryTag}
+              onChange={setDietaryTag}
+              options={dietaryTagOptions}
               placeholder="Dietary"
               className="flex-1 min-w-[150px]"
             />
@@ -176,13 +126,7 @@ export const RecipeBrowserModal: React.FC<RecipeBrowserModalProps> = ({
 
         {/* Recipe grid */}
         <div className="flex-1 overflow-y-auto -mx-6 px-6">
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-80 bg-gray-200 rounded-lg animate-pulse"></div>
-              ))}
-            </div>
-          ) : filteredRecipes.length === 0 ? (
+          {filteredRecipes.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <Filter className="w-16 h-16 text-gray-300 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No recipes found</h3>

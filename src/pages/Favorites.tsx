@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Search, Filter, SortAsc, Home } from 'lucide-react';
-import { useRecipes } from '../contexts/RecipeContext';
-import { useAuth } from '../contexts/AuthContext';
+import { Heart, Search, Filter, Home } from 'lucide-react';
+import { useRecipes } from '../contexts/useRecipes';
 import { Breadcrumb } from '../components/atoms/Breadcrumb';
 import { Input } from '../components/atoms/Input';
 import { Button } from '../components/atoms/Button';
@@ -12,17 +11,45 @@ import type { Recipe, MealCategory } from '../types/recipe.types';
 
 type SortOption = 'name' | 'recent' | 'time' | 'rating';
 
+const sortRecipes = (recipes: Recipe[], sort: SortOption): Recipe[] => {
+  const sorted = [...recipes];
+
+  switch (sort) {
+    case 'name':
+      return sorted.sort((a, b) => a.name.localeCompare(b.name));
+
+    case 'time':
+      return sorted.sort((a, b) => {
+        const aTime = a.prepTime + a.cookTime;
+        const bTime = b.prepTime + b.cookTime;
+        return aTime - bTime;
+      });
+
+    case 'rating':
+      return sorted.sort((a, b) => {
+        const aRating = a.rating || 0;
+        const bRating = b.rating || 0;
+        return bRating - aRating;
+      });
+
+    case 'recent':
+    default:
+      // Keep original order (most recently added first)
+      return sorted.reverse();
+  }
+};
+
 export const Favorites: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { favoriteRecipes, loadFavorites } = useRecipes();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
-  const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
 
-  const categories = ['All', 'Breakfast', 'Lunch', 'Dinner', 'Snack', 'Dessert'];
+  const categories = ['All', 'Breakfast', 'Lunch', 'Dinner', 'Snack', 'Dessert'].map(
+    (category) => ({ value: category, label: category })
+  );
   const sortOptions = [
     { value: 'recent', label: 'Recently Added' },
     { value: 'name', label: 'Name (A-Z)' },
@@ -32,13 +59,9 @@ export const Favorites: React.FC = () => {
 
   useEffect(() => {
     loadFavorites();
-  }, []);
+  }, [loadFavorites]);
 
-  useEffect(() => {
-    applyFiltersAndSort();
-  }, [favoriteRecipes, searchQuery, selectedCategory, sortBy]);
-
-  const applyFiltersAndSort = () => {
+  const filteredRecipes = useMemo(() => {
     let filtered = [...favoriteRecipes];
 
     // Search filter
@@ -60,39 +83,8 @@ export const Favorites: React.FC = () => {
       );
     }
 
-    // Sort
-    filtered = sortRecipes(filtered, sortBy);
-
-    setFilteredRecipes(filtered);
-  };
-
-  const sortRecipes = (recipes: Recipe[], sort: SortOption): Recipe[] => {
-    const sorted = [...recipes];
-
-    switch (sort) {
-      case 'name':
-        return sorted.sort((a, b) => a.name.localeCompare(b.name));
-
-      case 'time':
-        return sorted.sort((a, b) => {
-          const aTime = a.prepTime + a.cookTime;
-          const bTime = b.prepTime + b.cookTime;
-          return aTime - bTime;
-        });
-
-      case 'rating':
-        return sorted.sort((a, b) => {
-          const aRating = a.rating || 0;
-          const bRating = b.rating || 0;
-          return bRating - aRating;
-        });
-
-      case 'recent':
-      default:
-        // Keep original order (most recently added first)
-        return sorted.reverse();
-    }
-  };
+    return sortRecipes(filtered, sortBy);
+  }, [favoriteRecipes, searchQuery, selectedCategory, sortBy]);
 
   const handleRecipeClick = (recipe: Recipe) => {
     navigate(`/recipes/${recipe.id}`);

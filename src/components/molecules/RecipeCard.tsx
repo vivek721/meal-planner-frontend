@@ -3,7 +3,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { Clock, Users, Heart } from 'lucide-react';
 import type { Recipe } from '../../types/recipe.types';
 import { Badge } from '../atoms/Badge';
-import { useRecipes } from '../../contexts/RecipeContext';
+import { useRecipes } from '../../contexts/useRecipes';
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -29,7 +29,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
   const { isFavorite, toggleFavorite } = useRecipes();
   const favorited = isFavorite(recipe.id);
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = () => {
     if (onClick && !isDragging) {
       onClick();
     }

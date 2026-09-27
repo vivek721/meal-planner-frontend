@@ -99,9 +99,7 @@ test.describe('Epic 2: Meal Planning', () => {
     test('should display loading state', async ({ page }) => {
       await page.goto('/meal-plan');
 
-      // Should show loading skeleton briefly
-      const hasLoading = await page.locator('[class*="animate-pulse"]').count() > 0;
-      // This might be too fast to catch, so we just verify page loads
+      // The loading skeleton is usually too brief to catch, so just verify the page loads
       await expect(page.locator('text=Week of')).toBeVisible({ timeout: 10000 });
     });
 

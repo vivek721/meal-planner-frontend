@@ -1,20 +1,19 @@
-import React from 'react';
-import { UseFormRegister, FieldError } from 'react-hook-form';
+import { UseFormRegister, FieldError, FieldValues, Path } from 'react-hook-form';
 import { Input } from '../atoms/Input';
 
-interface FormFieldProps {
-  name: string;
+interface FormFieldProps<TFieldValues extends FieldValues> {
+  name: Path<TFieldValues>;
   label?: string;
   type?: string;
   placeholder?: string;
   error?: FieldError;
-  register: UseFormRegister<any>;
+  register: UseFormRegister<TFieldValues>;
   helperText?: string;
   required?: boolean;
   autoComplete?: string;
 }
 
-export const FormField: React.FC<FormFieldProps> = ({
+export const FormField = <TFieldValues extends FieldValues>({
   name,
   label,
   type = 'text',
@@ -24,7 +23,7 @@ export const FormField: React.FC<FormFieldProps> = ({
   helperText,
   required = false,
   autoComplete,
-}) => {
+}: FormFieldProps<TFieldValues>) => {
   return (
     <Input
       {...register(name)}

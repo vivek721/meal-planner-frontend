@@ -1,4 +1,4 @@
-import { startOfWeek, format } from 'date-fns';
+import { startOfWeek, format, parseISO } from 'date-fns';
 import { MealPlan, MealSlot, MealType, DayMeals } from '../types/recipe.types';
 import RecipeService from './RecipeService';
 
@@ -21,7 +21,15 @@ class MealPlanService {
   }
 
   /**
-   * Get meal plan for a specific week
+   * Parse a "yyyy-MM-dd" day key as a local date. (new Date('yyyy-MM-dd')
+   * parses as UTC midnight, which is the previous day west of UTC.)
+   */
+  private parseDayKey(dayDate: string): Date {
+    return parseISO(dayDate);
+  }
+
+  /**
+   * Get the meal plan for the week (Sunday to Saturday) containing `date`
    */
   getMealPlan(userId: string, date: Date = new Date()): MealPlan | null {
     const weekStartDate = this.getWeekStartDate(date);
@@ -54,11 +62,11 @@ class MealPlanService {
   }
 
   /**
-   * Add a meal to a specific day and meal type
+   * Add a recipe to a specific day and meal type.
+   * The week is derived from `dayDate` ("yyyy-MM-dd").
    */
   addMeal(
     userId: string,
-    date: Date,
     dayDate: string,
     mealType: MealType,
     recipeId: string
@@ -69,7 +77,7 @@ class MealPlanService {
       return null;
     }
 
-    const mealPlan = this.getMealPlan(userId, date);
+    const mealPlan = this.getMealPlan(userId, this.parseDayKey(dayDate));
     if (!mealPlan) return null;
 
     const mealSlot: MealSlot = {
@@ -95,15 +103,15 @@ class MealPlanService {
   }
 
   /**
-   * Remove a meal from a specific day and meal type
+   * Remove a meal from a specific day and meal type.
+   * The week is derived from `dayDate` ("yyyy-MM-dd").
    */
   removeMeal(
     userId: string,
-    date: Date,
     dayDate: string,
     mealType: MealType
   ): MealPlan | null {
-    const mealPlan = this.getMealPlan(userId, date);
+    const mealPlan = this.getMealPlan(userId, this.parseDayKey(dayDate));
     if (!mealPlan) return null;
 
     if (mealPlan.days[dayDate] && mealPlan.days[dayDate][mealType]) {
@@ -127,16 +135,16 @@ class MealPlanService {
   }
 
   /**
-   * Copy meals from one day to another (or multiple days)
+   * Copy meals from one day to other days in the same week.
+   * The week is derived from `sourceDayDate` ("yyyy-MM-dd").
    */
   copyDay(
     userId: string,
-    date: Date,
     sourceDayDate: string,
     targetDayDates: string[],
     replaceExisting: boolean = false
   ): MealPlan | null {
-    const mealPlan = this.getMealPlan(userId, date);
+    const mealPlan = this.getMealPlan(userId, this.parseDayKey(sourceDayDate));
     if (!mealPlan) return null;
 
     const sourceMeals = mealPlan.days[sourceDayDate];
@@ -192,7 +200,7 @@ class MealPlanService {
   }
 
   /**
-   * Clear meal plan for specific options
+   * Clear meals from the week containing `date`
    */
   clearPlan(
     userId: string,

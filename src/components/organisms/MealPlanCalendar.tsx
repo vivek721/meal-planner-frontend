@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   DndContext,
   DragEndEvent,
   DragOverlay,
+  DragStartEvent,
   PointerSensor,
   useSensor,
   useSensors,
@@ -16,29 +17,38 @@ import {
   isSameWeek,
   format,
 } from 'date-fns';
-import MealPlanService from '../../services/MealPlanService';
 import { DayColumn } from '../molecules/DayColumn';
 import { WeekNavigation } from '../molecules/WeekNavigation';
 import { RecipeCard } from '../molecules/RecipeCard';
-import type { MealPlan, Recipe } from '../../types/recipe.types';
+import type { MealPlan, MealType, Recipe } from '../../types/recipe.types';
+
+interface MealSlotDropData {
+  dayDate: string;
+  mealType: MealType;
+}
 
 interface MealPlanCalendarProps {
-  userId: string;
-  onAddMealClick: (dayDate: string, mealType: 'breakfast' | 'lunch' | 'dinner' | 'snacks') => void;
+  /** Sunday that starts the week being shown */
+  weekStart: Date;
+  onWeekStartChange: (weekStart: Date) => void;
+  /** Plan for the week being shown; null while it is loading */
+  mealPlan: MealPlan | null;
+  onAddMealClick: (dayDate: string, mealType: MealType) => void;
+  onRemoveMeal: (dayDate: string, mealType: MealType) => void;
+  onDropRecipe: (recipe: Recipe, dayDate: string, mealType: MealType) => void;
   onCopyDayClick: (dayDate: string) => void;
 }
 
 export const MealPlanCalendar: React.FC<MealPlanCalendarProps> = ({
-  userId,
+  weekStart,
+  onWeekStartChange,
+  mealPlan,
   onAddMealClick,
+  onRemoveMeal,
+  onDropRecipe,
   onCopyDayClick,
 }) => {
-  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(
-    startOfWeek(new Date(), { weekStartsOn: 0 })
-  );
-  const [mealPlan, setMealPlan] = useState<MealPlan | null>(null);
   const [activeRecipe, setActiveRecipe] = useState<Recipe | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -48,57 +58,39 @@ export const MealPlanCalendar: React.FC<MealPlanCalendarProps> = ({
     })
   );
 
-  const weekEndDate = endOfWeek(currentWeekStart, { weekStartsOn: 0 });
-  const isCurrentWeek = isSameWeek(currentWeekStart, new Date(), { weekStartsOn: 0 });
+  const weekEndDate = endOfWeek(weekStart, { weekStartsOn: 0 });
+  const isCurrentWeek = isSameWeek(weekStart, new Date(), { weekStartsOn: 0 });
 
   // Generate week days
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
-
-  // Load meal plan
-  useEffect(() => {
-    loadMealPlan();
-  }, [currentWeekStart, userId]);
-
-  const loadMealPlan = async () => {
-    setIsLoading(true);
-    try {
-      const weekStartStr = format(currentWeekStart, 'yyyy-MM-dd');
-      const plan = await MealPlanService.getMealPlan(userId, weekStartStr);
-      setMealPlan(plan);
-    } catch (error) {
-      console.error('Failed to load meal plan:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const handlePreviousWeek = () => {
-    setCurrentWeekStart(subWeeks(currentWeekStart, 1));
+    onWeekStartChange(subWeeks(weekStart, 1));
   };
 
   const handleNextWeek = () => {
-    setCurrentWeekStart(addWeeks(currentWeekStart, 1));
+    onWeekStartChange(addWeeks(weekStart, 1));
   };
 
   const handleThisWeek = () => {
-    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }));
+    onWeekStartChange(startOfWeek(new Date(), { weekStartsOn: 0 }));
   };
 
-  const handleDragStart = (event: any) => {
-    const recipe = event.active.data.current?.recipe;
+  const handleDragStart = (event: DragStartEvent) => {
+    const recipe = event.active.data.current?.recipe as Recipe | undefined;
     if (recipe) {
       setActiveRecipe(recipe);
     }
   };
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveRecipe(null);
 
     if (!over || !mealPlan) return;
 
-    const recipe = active.data.current?.recipe as Recipe;
-    const dropTarget = over.data.current;
+    const recipe = active.data.current?.recipe as Recipe | undefined;
+    const dropTarget = over.data.current as MealSlotDropData | undefined;
 
     if (recipe && dropTarget) {
       const { dayDate, mealType } = dropTarget;
@@ -112,55 +104,11 @@ export const MealPlanCalendar: React.FC<MealPlanCalendarProps> = ({
         if (!confirmed) return;
       }
 
-      // Add meal to plan
-      try {
-        await MealPlanService.addMeal(
-          userId,
-          format(currentWeekStart, 'yyyy-MM-dd'),
-          dayDate,
-          mealType,
-          {
-            recipeId: recipe.id,
-            recipeName: recipe.name,
-            thumbnail: recipe.thumbnail,
-            prepTime: recipe.prepTime,
-            addedAt: new Date().toISOString(),
-          }
-        );
-
-        // Reload meal plan
-        loadMealPlan();
-
-        // Show success toast (assuming a toast context exists)
-        console.log(`Recipe added to ${mealType} on ${dayDate}`);
-      } catch (error) {
-        console.error('Failed to add meal:', error);
-      }
+      onDropRecipe(recipe, dayDate, mealType);
     }
   };
 
-  const handleRemoveMeal = async (
-    dayDate: string,
-    mealType: 'breakfast' | 'lunch' | 'dinner' | 'snacks'
-  ) => {
-    if (!mealPlan) return;
-
-    try {
-      await MealPlanService.removeMeal(
-        userId,
-        format(currentWeekStart, 'yyyy-MM-dd'),
-        dayDate,
-        mealType
-      );
-
-      // Reload meal plan
-      loadMealPlan();
-    } catch (error) {
-      console.error('Failed to remove meal:', error);
-    }
-  };
-
-  if (isLoading) {
+  if (!mealPlan) {
     return (
       <div className="animate-pulse">
         <div className="h-16 bg-gray-200 rounded mb-6"></div>
@@ -182,7 +130,7 @@ export const MealPlanCalendar: React.FC<MealPlanCalendarProps> = ({
       <div>
         {/* Week navigation */}
         <WeekNavigation
-          weekStartDate={currentWeekStart}
+          weekStartDate={weekStart}
           weekEndDate={weekEndDate}
           onPreviousWeek={handlePreviousWeek}
           onNextWeek={handleNextWeek}
@@ -194,7 +142,7 @@ export const MealPlanCalendar: React.FC<MealPlanCalendarProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
           {weekDays.map((day) => {
             const dayKey = format(day, 'yyyy-MM-dd');
-            const dayMeals = mealPlan?.days[dayKey] || {};
+            const dayMeals = mealPlan.days[dayKey] || {};
 
             return (
               <DayColumn
@@ -202,7 +150,7 @@ export const MealPlanCalendar: React.FC<MealPlanCalendarProps> = ({
                 date={day}
                 meals={dayMeals}
                 onAddMeal={(mealType) => onAddMealClick(dayKey, mealType)}
-                onRemoveMeal={(mealType) => handleRemoveMeal(dayKey, mealType)}
+                onRemoveMeal={(mealType) => onRemoveMeal(dayKey, mealType)}
                 onCopyDay={() => onCopyDayClick(dayKey)}
               />
             );

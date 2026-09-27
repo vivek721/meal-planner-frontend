@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { format } from 'date-fns';
-import { Copy, AlertTriangle } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { AlertTriangle } from 'lucide-react';
 import { Modal } from '../atoms/Modal';
 import { Button } from '../atoms/Button';
 import { Checkbox } from '../atoms/Checkbox';
@@ -28,7 +28,7 @@ export const CopyDayModal: React.FC<CopyDayModalProps> = ({
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [replaceExisting, setReplaceExisting] = useState(false);
 
-  const sourceDayName = format(new Date(sourceDayDate), 'EEEE');
+  const sourceDayName = format(parseISO(sourceDayDate), 'EEEE');
 
   // Count how many meals exist in source day
   const sourceMealCount = Object.values(sourceDayMeals).filter(Boolean).length;
@@ -75,14 +75,10 @@ export const CopyDayModal: React.FC<CopyDayModalProps> = ({
   const hasExistingMeals = getTotalExistingMeals() > 0;
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} size="md">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Copy Day's Meals" size="md">
       <div className="space-y-6">
-        {/* Header */}
+        {/* Summary */}
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Copy className="w-5 h-5 text-primary-500" />
-            <h3 className="text-xl font-semibold text-gray-900">Copy Day's Meals</h3>
-          </div>
           <p className="text-gray-600">
             Copy {sourceMealCount} meal{sourceMealCount !== 1 ? 's' : ''} from {sourceDayName} to other days
           </p>
@@ -95,7 +91,7 @@ export const CopyDayModal: React.FC<CopyDayModalProps> = ({
           </label>
           <div className="space-y-2">
             {targetDays.map((dayDate) => {
-              const day = new Date(dayDate);
+              const day = parseISO(dayDate);
               const dayName = format(day, 'EEEE, MMM d');
               const existingCount = getExistingMealCount(dayDate);
               const isSelected = selectedDays.includes(dayDate);

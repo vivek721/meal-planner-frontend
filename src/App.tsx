@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
+import { useAuth } from './contexts/useAuth';
 import { RecipeProvider } from './contexts/RecipeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ToastContainer } from './components/organisms/ToastContainer';

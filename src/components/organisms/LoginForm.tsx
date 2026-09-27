@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/useAuth';
 import { Input } from '../atoms/Input';
 import { Checkbox } from '../atoms/Checkbox';
 import { Button } from '../atoms/Button';
@@ -66,7 +66,9 @@ export const LoginForm: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* noValidate: the Zod schema above does the validation and shows its own
+            messages; native checks on type="email"/required would pre-empt them */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div>
             <Input
               {...register('email')}

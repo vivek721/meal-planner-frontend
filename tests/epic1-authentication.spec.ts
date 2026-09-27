@@ -27,12 +27,15 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
       await passwordInput.fill('weak');
 
       // Should show weak indicator
-      await expect(page.locator('text=Weak')).toBeVisible();
+      await expect(page.getByText('Weak', { exact: true })).toBeVisible();
 
+      // Meets every rule but is under 12 characters (see calculatePasswordStrength)
       await passwordInput.fill('Test123!@#');
+      await expect(page.getByText('Medium', { exact: true })).toBeVisible();
 
-      // Should show strong indicator
-      await expect(page.locator('text=Strong')).toBeVisible();
+      // 12+ characters with upper, lower, digit and symbol
+      await passwordInput.fill('Test123!@#abc');
+      await expect(page.getByText('Strong', { exact: true })).toBeVisible();
     });
 
     test('should validate email format', async ({ page }) => {
@@ -43,8 +46,9 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
       await page.fill('input[name="confirmPassword"]', 'Test123!@#');
       await page.click('button[type="submit"]');
 
-      // Should show validation error
-      await expect(page.locator('text=Invalid email')).toBeVisible();
+      // Should show the form's validation error (message from the Zod schema in RegisterForm)
+      await expect(page.getByText('Please enter a valid email address')).toBeVisible();
+      await expect(page).toHaveURL(/\/register/);
     });
 
     test('should validate password confirmation match', async ({ page }) => {
@@ -83,7 +87,7 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
     const testEmail = 'login-test@example.com';
     const testPassword = 'Test123!@#';
 
-    test.beforeEach(async ({ page }) => {
+    test.beforeEach(async () => {
       // Create a test user
       await authHelper.register(testEmail, testPassword, 'Login Test');
       await authHelper.skipOnboarding();
@@ -109,15 +113,11 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
       await expect(page.locator('text=Invalid email or password')).toBeVisible();
     });
 
-    test('should remember user when "Remember me" is checked', async ({ page, context }) => {
+    test('should remember user when "Remember me" is checked', async ({ page }) => {
       await authHelper.login(testEmail, testPassword, true);
 
-      // Get cookies
-      const cookies = await context.cookies();
-      const authCookie = cookies.find(c => c.name === 'authToken' || c.name.includes('auth'));
-
-      // Cookie should exist (or localStorage should persist)
-      const authToken = await page.evaluate(() => localStorage.getItem('authToken'));
+      // The JWT is kept in localStorage (key used by src/services/AuthService.ts)
+      const authToken = await page.evaluate(() => localStorage.getItem('meal_planner_auth_token'));
       expect(authToken).toBeTruthy();
     });
 

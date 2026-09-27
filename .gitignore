@@ -28,3 +28,6 @@ test-results/
 playwright-report/
 playwright/.cache/
 *.spec.ts.snap
+
+# Playwright MCP screenshots
+.playwright-mcp/

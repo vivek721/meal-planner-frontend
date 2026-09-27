@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { RecipeSearchBar } from '../components/molecules/RecipeSearchBar';
 import { RecipeCard } from '../components/molecules/RecipeCard';
-import { useRecipes } from '../contexts/RecipeContext';
+import { useRecipes } from '../contexts/useRecipes';
 import RecipeService from '../services/RecipeService';
 import { Recipe } from '../types/recipe.types';
 
 export const RecipeTest: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const { searchResults, totalResults, favoriteRecipes } = useRecipes();
+  const { totalResults, favoriteRecipes } = useRecipes();
 
   // Load initial recipes
   useEffect(() => {
