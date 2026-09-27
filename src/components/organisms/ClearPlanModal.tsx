@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { Trash2, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { Modal } from '../atoms/Modal';
 import { Button } from '../atoms/Button';
 import { Checkbox } from '../atoms/Checkbox';
-import type { DayMeals } from '../../types/recipe.types';
+import type { DayMeals, MealType } from '../../types/recipe.types';
 
 interface ClearPlanModalProps {
   isOpen: boolean;
@@ -14,7 +14,7 @@ interface ClearPlanModalProps {
   hasShoppingList?: boolean;
   onClear: (options: {
     targetDays: string[] | 'all';
-    mealTypes?: Array<'breakfast' | 'lunch' | 'dinner' | 'snacks'> | 'all';
+    mealTypes?: MealType[] | 'all';
     deleteShoppingList?: boolean;
   }) => void;
 }
@@ -29,10 +29,10 @@ export const ClearPlanModal: React.FC<ClearPlanModalProps> = ({
 }) => {
   const [clearMode, setClearMode] = useState<'all' | 'specific'>('all');
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
-  const [selectedMealTypes, setSelectedMealTypes] = useState<string[]>([]);
+  const [selectedMealTypes, setSelectedMealTypes] = useState<MealType[]>([]);
   const [deleteShoppingList, setDeleteShoppingList] = useState(false);
 
-  const mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks'];
+  const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner', 'snacks'];
 
   // Count total meals
   const getTotalMealCount = (): number => {
@@ -51,7 +51,7 @@ export const ClearPlanModal: React.FC<ClearPlanModalProps> = ({
       return Object.values(existingMeals).reduce((total, dayMeals) => {
         return (
           total +
-          selectedMealTypes.filter((type) => dayMeals[type as keyof DayMeals]).length
+          selectedMealTypes.filter((type) => dayMeals[type]).length
         );
       }, 0);
     } else {
@@ -64,7 +64,7 @@ export const ClearPlanModal: React.FC<ClearPlanModalProps> = ({
         if (selectedMealTypes.length === 0) {
           count += Object.values(dayMeals).filter(Boolean).length;
         } else {
-          count += selectedMealTypes.filter((type) => dayMeals[type as keyof DayMeals]).length;
+          count += selectedMealTypes.filter((type) => dayMeals[type]).length;
         }
       });
       return count;
@@ -79,7 +79,7 @@ export const ClearPlanModal: React.FC<ClearPlanModalProps> = ({
     );
   };
 
-  const handleMealTypeToggle = (mealType: string) => {
+  const handleMealTypeToggle = (mealType: MealType) => {
     setSelectedMealTypes((prev) =>
       prev.includes(mealType)
         ? prev.filter((t) => t !== mealType)
@@ -90,7 +90,7 @@ export const ClearPlanModal: React.FC<ClearPlanModalProps> = ({
   const handleClear = () => {
     onClear({
       targetDays: clearMode === 'all' ? 'all' : selectedDays,
-      mealTypes: selectedMealTypes.length === 0 ? 'all' : selectedMealTypes as any,
+      mealTypes: selectedMealTypes.length === 0 ? 'all' : selectedMealTypes,
       deleteShoppingList,
     });
     handleClose();
@@ -109,14 +109,10 @@ export const ClearPlanModal: React.FC<ClearPlanModalProps> = ({
     (clearMode === 'all' || selectedDays.length > 0) && mealsToClear > 0;
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} size="md">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Clear Meal Plan" size="md">
       <div className="space-y-6">
-        {/* Header */}
+        {/* Summary */}
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Trash2 className="w-5 h-5 text-red-500" />
-            <h3 className="text-xl font-semibold text-gray-900">Clear Meal Plan</h3>
-          </div>
           <p className="text-gray-600">
             {getTotalMealCount()} total meal{getTotalMealCount() !== 1 ? 's' : ''} in this week
           </p>
