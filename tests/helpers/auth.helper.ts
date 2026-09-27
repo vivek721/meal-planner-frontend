@@ -56,9 +56,14 @@ export class AuthHelper {
   }
 
   async clearAuthStorage() {
+    // localStorage is not accessible on about:blank, so load the app first
+    if (this.page.url() === 'about:blank') {
+      await this.page.goto('/login');
+    }
     await this.page.evaluate(() => {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('currentUser');
+      // Keys used by src/services/AuthService.ts
+      localStorage.removeItem('meal_planner_auth_token');
+      localStorage.removeItem('meal_planner_current_user');
     });
   }
 }
