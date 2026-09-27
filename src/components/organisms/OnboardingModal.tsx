@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Calendar, Search, ShoppingCart, Sparkles, X } from 'lucide-react';
 import { Button } from '../atoms/Button';
@@ -54,6 +54,15 @@ export const OnboardingModal: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const navigate = useNavigate();
 
+  // Skipping and finishing both mark onboarding complete and go to the dashboard
+  const finishOnboarding = useCallback(() => {
+    AuthService.completeOnboarding();
+    navigate('/dashboard');
+  }, [navigate]);
+
+  const handleSkip = finishOnboarding;
+  const handleComplete = finishOnboarding;
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft' && currentSlide > 0) {
@@ -69,7 +78,7 @@ export const OnboardingModal: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentSlide]);
+  }, [currentSlide, handleComplete, handleSkip]);
 
   const handleNext = () => {
     if (currentSlide < slides.length - 1) {
@@ -81,16 +90,6 @@ export const OnboardingModal: React.FC = () => {
     if (currentSlide > 0) {
       setCurrentSlide(currentSlide - 1);
     }
-  };
-
-  const handleSkip = () => {
-    AuthService.completeOnboarding();
-    navigate('/dashboard');
-  };
-
-  const handleComplete = () => {
-    AuthService.completeOnboarding();
-    navigate('/dashboard');
   };
 
   const slide = slides[currentSlide];

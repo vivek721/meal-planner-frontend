@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Clock, Users, ChefHat, Home } from 'lucide-react';
-import { useRecipes } from '../contexts/RecipeContext';
-import { useToast } from '../contexts/ToastContext';
+import { useRecipes } from '../contexts/useRecipes';
+import { useToast } from '../contexts/useToast';
 import { Breadcrumb } from '../components/atoms/Breadcrumb';
 import { Badge } from '../components/atoms/Badge';
 import { ServingAdjuster } from '../components/atoms/ServingAdjuster';
@@ -22,20 +22,11 @@ export const RecipeDetail: React.FC = () => {
   const [similarRecipes, setSimilarRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Load the recipe whenever the :id route param changes
   useEffect(() => {
-    if (!id) {
-      showError('Recipe not found');
-      navigate('/recipes');
-      return;
-    }
-
-    loadRecipe(id);
-  }, [id]);
-
-  const loadRecipe = (recipeId: string) => {
     setIsLoading(true);
 
-    const foundRecipe = RecipeService.getRecipeById(recipeId);
+    const foundRecipe = id ? RecipeService.getRecipeById(id) : null;
 
     if (!foundRecipe) {
       showError('Recipe not found');
@@ -48,11 +39,10 @@ export const RecipeDetail: React.FC = () => {
     setAdjustedServings(foundRecipe.servings);
 
     // Load similar recipes
-    const similar = RecipeService.getSimilarRecipes(recipeId, 4);
-    setSimilarRecipes(similar);
+    setSimilarRecipes(RecipeService.getSimilarRecipes(foundRecipe.id, 4));
 
     setIsLoading(false);
-  };
+  }, [id, navigate, showError, setCurrentRecipe, setAdjustedServings]);
 
   const handleServingsChange = (newServings: number) => {
     setAdjustedServings(newServings);

@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { startOfWeek, addDays, format, parseISO } from 'date-fns';
 import { Trash2, Download } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/useAuth';
+import { useToast } from '../contexts/useToast';
 import { MealPlanCalendar } from '../components/organisms/MealPlanCalendar';
 import { RecipeBrowserModal } from '../components/organisms/RecipeBrowserModal';
 import { MealSuggestions } from '../components/organisms/MealSuggestions';

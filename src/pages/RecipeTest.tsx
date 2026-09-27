@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { RecipeSearchBar } from '../components/molecules/RecipeSearchBar';
 import { RecipeCard } from '../components/molecules/RecipeCard';
-import { useRecipes } from '../contexts/RecipeContext';
+import { useRecipes } from '../contexts/useRecipes';
 import RecipeService from '../services/RecipeService';
 import { Recipe } from '../types/recipe.types';
 

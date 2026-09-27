@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Heart, Calendar, Share2, Printer } from 'lucide-react';
 import { Button } from '../atoms/Button';
-import { useRecipes } from '../../contexts/RecipeContext';
-import { useToast } from '../../contexts/ToastContext';
+import { useRecipes } from '../../contexts/useRecipes';
+import { useToast } from '../../contexts/useToast';
 import type { Recipe } from '../../types/recipe.types';
 
 interface RecipeActionsProps {

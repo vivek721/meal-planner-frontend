@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Home } from 'lucide-react';
-import { useRecipes } from '../contexts/RecipeContext';
+import { useRecipes } from '../contexts/useRecipes';
 import { Breadcrumb } from '../components/atoms/Breadcrumb';
 import { Input } from '../components/atoms/Input';
 import { Button } from '../components/atoms/Button';
@@ -41,21 +41,7 @@ export const Recipes: React.FC = () => {
     { value: 'newest', label: 'Newest' },
   ];
 
-  // Load all recipes on mount
-  useEffect(() => {
-    performSearch();
-  }, []);
-
-  // Search when filters change
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      performSearch();
-    }, 300);
-
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery, selectedCategories, selectedCuisines, selectedDietaryTags, maxPrepTime, sortBy]);
-
-  const performSearch = () => {
+  const performSearch = useCallback(() => {
     const filters: RecipeFilter = {
       searchQuery: searchQuery || undefined,
       category: selectedCategories.length > 0 ? selectedCategories : undefined,
@@ -65,7 +51,20 @@ export const Recipes: React.FC = () => {
     };
 
     searchRecipes(filters, { sortBy });
-  };
+  }, [searchRecipes, searchQuery, selectedCategories, selectedCuisines, selectedDietaryTags, maxPrepTime, sortBy]);
+
+  // Search immediately on mount, then debounce searches when filters change
+  const hasSearched = useRef(false);
+  useEffect(() => {
+    if (!hasSearched.current) {
+      hasSearched.current = true;
+      performSearch();
+      return;
+    }
+
+    const debounceTimer = setTimeout(performSearch, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [performSearch]);
 
   const handleCategoryToggle = (category: MealCategory) => {
     setSelectedCategories((prev) =>

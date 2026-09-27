@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Sparkles } from 'lucide-react';
 import { Button } from '../atoms/Button';
 import { Dropdown } from '../atoms/Dropdown';
@@ -38,14 +38,10 @@ export const MealSuggestions: React.FC<MealSuggestionsProps> = ({
   const [selectedDay, setSelectedDay] = useState<string>('');
   const [selectedMealType, setSelectedMealType] = useState<MealType>('breakfast');
 
-  useEffect(() => {
-    loadSuggestions();
-  }, [userId, preferences]);
-
-  const loadSuggestions = async () => {
+  const loadSuggestions = useCallback(() => {
     setIsLoading(true);
     try {
-      const suggestionResults = await MockAIService.generateSuggestions(userId, { dietaryPreferences: preferences });
+      const suggestionResults = MockAIService.generateSuggestions(userId, { dietaryPreferences: preferences });
       // Convert reason object to string
       const formattedSuggestions = suggestionResults.map(({ recipe, reason }) => ({
         recipe,
@@ -59,7 +55,11 @@ export const MealSuggestions: React.FC<MealSuggestionsProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId, preferences]);
+
+  useEffect(() => {
+    loadSuggestions();
+  }, [loadSuggestions]);
 
   const handleRefresh = () => {
     loadSuggestions();
