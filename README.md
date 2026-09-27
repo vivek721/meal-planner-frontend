@@ -1,180 +1,138 @@
-# AI-Powered Meal Planner - Epic 1: Authentication & Onboarding
+# Meal Planner (Frontend)
 
-This project implements Epic 1 of the AI-Powered Meal Planner application, featuring complete user authentication and onboarding functionality.
+A React + TypeScript single-page app for planning a week of meals. You can sign up, sign in, browse and filter a recipe catalogue, scale recipes to a different number of servings, save favourites, and lay out breakfast, lunch, dinner and snacks for each day on a weekly calendar. Authentication runs against a real Go REST API using JWTs. Recipes, favourites and meal plans live on the client for now (bundled mock data plus `localStorage`).
 
-## Features Implemented
+**Backend:** [vivek721/meal-planner-backend](https://github.com/vivek721/meal-planner-backend) is a Go/Gin API with PostgreSQL and JWT auth.
 
-### User Registration (US-1.1)
-- Email and password registration with optional name field
-- Email format validation
-- Password strength requirements (8+ chars, uppercase, number)
-- Real-time password strength indicator (Weak/Medium/Strong)
-- Confirm password matching validation
-- Clear error messages
-- Success notification with auto-redirect
-- Auto-login after registration
-- Data persisted to localStorage
+## Features
 
-### User Login (US-1.2)
-- Email and password authentication
-- "Remember me" functionality (30-day session)
-- "Forgot password?" link (placeholder for future enhancement)
-- Failed login attempt tracking (locks after 3 attempts for 5 minutes)
-- Loading states during authentication
-- Session persistence across browser refreshes
-- Link to registration page
+### Authentication and onboarding (backed by the Go API)
+- **Registration:** optional name, email and password. The form is validated with Zod (8+ characters, one uppercase letter, one number, matching confirmation) and shows a live password-strength meter.
+- **Login and logout:** these call `POST /api/auth/login` and `POST /api/auth/logout`. The JWT is stored in `localStorage`, and an Axios interceptor adds it to every request as a `Bearer` token.
+- **Session restore:** on page load the app checks the stored token with `GET /api/auth/me`. Any `401` response clears the session and sends the user back to login.
+- **Route guards:** protected routes redirect to `/login`. Signed-in users are sent away from the login and register pages. New users are sent to onboarding first.
+- **Onboarding tutorial:** five slides with a progress indicator. You can move through them with Next/Back/Skip or with the keyboard (arrow keys, Enter, Escape). Finishing is saved through `POST /api/auth/onboarding/complete`, and the dashboard has a button to replay it.
 
-### Onboarding Tutorial (US-1.3)
-- 5-screen interactive tutorial
-- Progress indicator
-- Navigation controls (Next, Back, Skip, Get Started)
-- Keyboard navigation support (Arrow keys, Enter, Escape)
-- Completion flag saved to user profile
-- Replay option available in Dashboard settings
-- Fully responsive design
+### Recipes (client-side, 70 bundled sample recipes)
+- **Browse (`/recipes`):** free-text search over name, description, cuisine, ingredients and dietary tags. You can filter by category, cuisine, dietary tag and maximum total time, and sort by popularity, quickest, newest, rating or name.
+- **Recipe detail (`/recipes/:id`):** ingredients, step-by-step instructions and nutrition. A serving adjuster rescales ingredient amounts (fractions are handled, e.g. `1/2` becomes `3/4`) along with the nutrition figures. The page also shows similar recipes (scored by cuisine, category and dietary tags) and has buttons for share (Web Share API, falling back to the clipboard), print and favourite.
+- **Favourites (`/favorites`):** saved per user in `localStorage`, with search, a category filter and sorting.
 
-## Tech Stack
+### Weekly meal planning (`/meal-plan`, client-side)
+- A Sunday-to-Saturday calendar with four meal slots per day, previous/next/this-week navigation and a highlight on today.
+- A drag-and-drop calendar built with `@dnd-kit`, plus a modal recipe picker for filling a slot.
+- Copy one day's meals to other days, with an option to fill only empty slots or replace what is there.
+- Clear the whole week, chosen days, or particular meal types.
+- A **suggestions panel** that ranks recipes with a local heuristic (dietary match, time of day, prep time, protein, rating) and gives a short reason for each pick. It runs in the browser and does not call an AI model.
 
-- **React 18** with TypeScript
-- **Vite** - Build tool
-- **Tailwind CSS 3.x** - Styling
-- **React Router v6** - Routing
-- **React Hook Form** - Form management
-- **Zod** - Schema validation
-- **Context API** - State management
-- **localStorage** - Mock backend
-- **Lucide React** - Icons
-- **Inter font** - Typography (Google Fonts)
+## Tech stack
 
-## Project Structure
+| Area | Choice |
+| --- | --- |
+| Framework | React 18, TypeScript 5 |
+| Build / dev server | Vite 5 |
+| Styling | Tailwind CSS 3 (custom teal/orange palette, Inter font) |
+| Routing | React Router 6 |
+| Forms and validation | React Hook Form + Zod |
+| HTTP | Axios (shared client with auth and error interceptors) |
+| State | React Context (`AuthContext`, `RecipeContext`, `ToastContext`) |
+| Drag and drop | `@dnd-kit/core` |
+| Dates | `date-fns` 4 |
+| Icons | `lucide-react` |
+| End-to-end tests | Playwright |
+| CI | GitHub Actions (lint, type-check, build, Playwright, CodeQL, dependency review) |
+
+## Project structure
 
 ```
 src/
 ├── components/
-│   ├── atoms/              # Basic UI components
-│   │   ├── Button.tsx
-│   │   ├── Input.tsx
-│   │   └── Checkbox.tsx
-│   ├── molecules/          # Composite components
-│   │   ├── PasswordStrengthIndicator.tsx
-│   │   └── FormField.tsx
-│   └── organisms/          # Complex components
-│       ├── RegisterForm.tsx
-│       ├── LoginForm.tsx
-│       └── OnboardingModal.tsx
-├── contexts/
-│   └── AuthContext.tsx     # Authentication state management
+│   ├── atoms/          # Button, Input, Modal, Dropdown, Toast, ServingAdjuster, ...
+│   ├── molecules/      # RecipeCard, MealSlot, DayColumn, WeekNavigation, NutritionCard, ...
+│   └── organisms/      # LoginForm, RegisterForm, OnboardingModal, MealPlanCalendar,
+│                       # RecipeBrowserModal, MealSuggestions, CopyDayModal, ClearPlanModal
+├── contexts/           # AuthContext, RecipeContext, ToastContext
+├── data/               # mockRecipes.ts (sample recipe catalogue)
+├── pages/              # Login, Register, Onboarding, Dashboard, MealPlan, Recipes,
+│                       # RecipeDetail, Favorites, RecipeTest (dev-only harness)
 ├── services/
-│   └── AuthService.ts      # Authentication business logic
-├── pages/
-│   ├── Register.tsx
-│   ├── Login.tsx
-│   ├── Onboarding.tsx
-│   └── Dashboard.tsx
-├── types/
-│   └── auth.types.ts       # TypeScript interfaces
-├── utils/
-│   └── passwordUtils.ts    # Password validation utilities
-├── App.tsx                 # Main app with routing
-├── main.tsx                # Entry point
-└── index.css               # Global styles
+│   ├── api/            # apiClient.ts (Axios instance), authApi.ts (auth endpoints)
+│   ├── AuthService.ts  # token/session handling on top of authApi
+│   ├── RecipeService.ts    # search, filter, sort, scaling, favourites
+│   ├── MealPlanService.ts  # weekly plans persisted to localStorage
+│   └── MockAIService.ts    # heuristic meal suggestions
+├── types/              # auth and recipe type definitions
+└── utils/              # password strength/validation helpers
+tests/                  # Playwright specs and page helpers
+docs/                   # PRD, design system, API contract and planning notes
 ```
 
-## Getting Started
+Components follow an atomic-design layout (atoms, then molecules, then organisms, then pages).
 
-### Installation
+## Getting started
+
+### Prerequisites
+- Node.js 18 or later (CI uses 18.x and 20.x) and npm
+- A running copy of [meal-planner-backend](https://github.com/vivek721/meal-planner-backend) if you want to register or log in. It listens on port `3001` by default and accepts CORS requests from `http://localhost:3000`.
+
+### Install and run
 
 ```bash
+git clone https://github.com/vivek721/meal-planner-frontend.git
+cd meal-planner-frontend
 npm install
+npm run dev          # http://localhost:3000 (opens the browser automatically)
 ```
 
-### Development
+### Pointing the app at the backend
+
+The API base URL comes from `VITE_API_URL`. The committed `.env` file sets it to the backend's default:
 
 ```bash
-npm run dev
+VITE_API_URL=http://localhost:3001
 ```
 
-The app will open at http://localhost:3000
+If `VITE_API_URL` is unset, the code falls back to that same value. To point at another backend, create `.env.local` (git-ignored) with your own `VITE_API_URL` and restart `npm run dev`.
 
-### Build
+### npm scripts
 
-```bash
-npm run build
-```
+| Script | What it does |
+| --- | --- |
+| `npm run dev` | Start the Vite dev server on port 3000 |
+| `npm run build` | Type-check with `tsc`, then produce a production build in `dist/` |
+| `npm run preview` | Serve the production build locally |
+| `npm run lint` | Run ESLint (zero warnings allowed) |
+| `npm test` | Run all Playwright tests |
+| `npm run test:ui` / `test:headed` / `test:debug` | Run Playwright in UI, headed or debug mode |
+| `npm run test:epic1` | Run only the authentication and onboarding spec |
+| `npm run test:epic2` | Run only the meal-planning spec |
+| `npm run test:report` | Open the last Playwright HTML report |
 
-### Preview Production Build
+## Tests
 
-```bash
-npm run preview
-```
+End-to-end tests use Playwright (`tests/`):
 
-## Usage
+- `epic1-authentication.spec.ts`: registration, login, onboarding and an end-to-end auth flow (17 tests)
+- `epic2-meal-planning.spec.ts`: weekly calendar, adding recipes to slots, suggestions, copy day, clear plan and a full planning flow (33 tests)
 
-1. **Register**: Create a new account at `/register`
-   - Enter email, password (with strength validation), and optional name
-   - Account is created and stored in localStorage
-   - Automatically redirects to onboarding
+`playwright.config.ts` runs them in Chromium, Firefox, WebKit, Pixel 5 and iPhone 12 profiles and starts the dev server itself. The backend has to be running because the tests register real users. Install the browsers once with `npx playwright install`.
 
-2. **Onboarding**: Complete the 5-screen tutorial
-   - Learn about app features
-   - Use keyboard shortcuts or buttons to navigate
-   - Skip anytime or complete to reach dashboard
+There are no unit tests yet.
 
-3. **Dashboard**: Access main application
-   - View placeholder for future features
-   - Replay tutorial anytime from settings
-   - Logout when done
+## Project status and known issues
 
-4. **Login**: Return to your account at `/login`
-   - Enter credentials
-   - Use "Remember me" for 30-day session
-   - Account locks for 5 minutes after 3 failed attempts
+This is an active work in progress. Known gaps:
 
-## Design System
+- **The type-check currently fails**, so `npm run build` and the CI build job fail (`npm run dev` still works). Most of the errors are in the meal-plan components (`MealPlan.tsx`, `MealPlanCalendar.tsx`, `RecipeBrowserModal.tsx`), where calls do not match the current `MealPlanService` and `RecipeService` signatures.
+- Because of that mismatch, **adding a meal to the calendar does not save yet** (from the recipe picker, drag and drop, or a suggestion).
+- Playwright's `baseURL` and `webServer.url` point at port `3001`, but the dev server runs on `3000` and the backend also defaults to `3001`. They need to line up before the E2E suite can pass.
+- "Remember me" on the login form is not wired up, "Forgot password?" is a placeholder, and the meal-plan **Export** button does nothing.
+- The dashboard does not link to `/recipes` or `/favorites` yet, so those pages are reached by URL.
 
-### Colors
-- **Primary (Teal)**: #14b8a6 - Main brand color
-- **Secondary (Orange)**: #f97316 - Accent color
+## Roadmap (not yet built)
 
-### Typography
-- **Font**: Inter (Google Fonts)
-- **Weights**: 300, 400, 500, 600, 700
-
-### Components
-All components follow atomic design principles with consistent Tailwind styling.
-
-## LocalStorage Structure
-
-```typescript
-// Keys used
-meal_planner_users          // Array of User objects
-meal_planner_auth_token     // Current session token
-meal_planner_current_user   // Current user object
-meal_planner_remember_me    // Expiry date for remember me feature
-```
-
-## Security Notes
-
-**Important**: This implementation uses localStorage and a simple hash function for demo purposes only. For production:
-- Use a proper backend API
-- Implement bcrypt or similar for password hashing
-- Use JWT tokens with proper expiration
-- Implement HTTPS
-- Add CSRF protection
-- Use secure cookie storage instead of localStorage
-
-## Future Enhancements
-
-- Password reset functionality
-- OAuth integration (Google, Facebook)
-- Two-factor authentication
-- Email verification
-- Profile management
-- Password change feature
-
-## Documentation
-
-For detailed specifications, see:
-- `/docs/epics/epic-1-authentication-onboarding.md`
-- `/docs/design/DESIGN_SYSTEM.md`
-- `/docs/PRD.md`
+- Save meal plans, favourites and recipes to the backend instead of `localStorage` and mock data
+- Shopping lists generated from the week's plan
+- A user preferences and profile page (the backend already has profile, password and preference endpoints)
+- Model-backed meal suggestions in place of the local heuristic
+- Password reset and persistent "remember me" sessions
