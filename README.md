@@ -20,10 +20,11 @@ A React + TypeScript single-page app for planning a week of meals. You can sign 
 
 ### Weekly meal planning (`/meal-plan`, client-side)
 - A Sunday-to-Saturday calendar with four meal slots per day, previous/next/this-week navigation and a highlight on today.
-- A drag-and-drop calendar built with `@dnd-kit`, plus a modal recipe picker for filling a slot.
+- A modal recipe picker (search plus category, cuisine and dietary filters) for filling a slot. Added meals are saved per user and per week and are still there after a reload.
+- Remove a meal from a slot.
 - Copy one day's meals to other days, with an option to fill only empty slots or replace what is there.
 - Clear the whole week, chosen days, or particular meal types.
-- A **suggestions panel** that ranks recipes with a local heuristic (dietary match, time of day, prep time, protein, rating) and gives a short reason for each pick. It runs in the browser and does not call an AI model.
+- A **suggestions panel** that ranks recipes with a local heuristic (time of day, prep time, protein, rating, and dietary match once the profile stores dietary preferences) and gives a short reason for each pick. Any suggestion can be added to a day and meal of the week you are viewing. It runs in the browser and does not call an AI model.
 
 ## Tech stack
 
@@ -86,13 +87,13 @@ npm run dev          # http://localhost:3000 (opens the browser automatically)
 
 ### Pointing the app at the backend
 
-The API base URL comes from `VITE_API_URL`. The committed `.env` file sets it to the backend's default:
+The API base URL comes from `VITE_API_URL` (documented in `.env.example`). The committed `.env` file contains only that variable, set to the backend's default:
 
 ```bash
 VITE_API_URL=http://localhost:3001
 ```
 
-If `VITE_API_URL` is unset, the code falls back to that same value. To point at another backend, create `.env.local` (git-ignored) with your own `VITE_API_URL` and restart `npm run dev`.
+If `VITE_API_URL` is unset, the code falls back to that same value. To point at another backend, copy `.env.example` to `.env.local` (git-ignored), set your own `VITE_API_URL` and restart `npm run dev`.
 
 ### npm scripts
 
@@ -101,7 +102,7 @@ If `VITE_API_URL` is unset, the code falls back to that same value. To point at 
 | `npm run dev` | Start the Vite dev server on port 3000 |
 | `npm run build` | Type-check with `tsc`, then produce a production build in `dist/` |
 | `npm run preview` | Serve the production build locally |
-| `npm run lint` | Run ESLint (zero warnings allowed) |
+| `npm run lint` | Run ESLint (zero warnings allowed); currently broken, see known issues |
 | `npm test` | Run all Playwright tests |
 | `npm run test:ui` / `test:headed` / `test:debug` | Run Playwright in UI, headed or debug mode |
 | `npm run test:epic1` | Run only the authentication and onboarding spec |
@@ -115,7 +116,7 @@ End-to-end tests use Playwright (`tests/`):
 - `epic1-authentication.spec.ts`: registration, login, onboarding and an end-to-end auth flow (17 tests)
 - `epic2-meal-planning.spec.ts`: weekly calendar, adding recipes to slots, suggestions, copy day, clear plan and a full planning flow (33 tests)
 
-`playwright.config.ts` runs them in Chromium, Firefox, WebKit, Pixel 5 and iPhone 12 profiles and starts the dev server itself. The backend has to be running because the tests register real users. Install the browsers once with `npx playwright install`.
+`playwright.config.ts` runs them in Chromium, Firefox, WebKit, Pixel 5 and iPhone 12 profiles against `http://localhost:3000`, and starts the dev server itself (or reuses one already running there). The backend has to be running on its default port `3001` because almost every test registers or logs in a real user. Install the browsers once with `npx playwright install`.
 
 There are no unit tests yet.
 
@@ -123,9 +124,10 @@ There are no unit tests yet.
 
 This is an active work in progress. Known gaps:
 
-- **The type-check currently fails**, so `npm run build` and the CI build job fail (`npm run dev` still works). Most of the errors are in the meal-plan components (`MealPlan.tsx`, `MealPlanCalendar.tsx`, `RecipeBrowserModal.tsx`), where calls do not match the current `MealPlanService` and `RecipeService` signatures.
-- Because of that mismatch, **adding a meal to the calendar does not save yet** (from the recipe picker, drag and drop, or a suggestion).
-- Playwright's `baseURL` and `webServer.url` point at port `3001`, but the dev server runs on `3000` and the backend also defaults to `3001`. They need to line up before the E2E suite can pass.
+- **`npm run lint` does not run.** `eslint.config.js` is a flat config that imports `typescript-eslint`, which is not installed, and the script passes `--ext`, which ESLint 8 rejects with a flat config. The CI lint step fails for the same reason. `npx tsc --noEmit` and `npm run build` pass.
+- **Drag and drop is only half built.** The calendar's meal slots are `@dnd-kit` drop targets, but nothing on the page is draggable yet, so meals are added through the recipe picker or the suggestions panel.
+- Some E2E assertions no longer match the UI. For example, the registration spec expects the text "Invalid email" (the form says "Please enter a valid email address", and the browser's own `type="email"` check fires first) and expects `Test123!@#` to rate as "Strong".
+- The user profile from the API has no dietary preferences, so the suggestions panel does not personalise by diet yet.
 - "Remember me" on the login form is not wired up, "Forgot password?" is a placeholder, and the meal-plan **Export** button does nothing.
 - The dashboard does not link to `/recipes` or `/favorites` yet, so those pages are reached by URL.
 
