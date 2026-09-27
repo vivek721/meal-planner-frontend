@@ -9,7 +9,8 @@ export default defineConfig({
   reporter: 'html',
 
   use: {
-    baseURL: 'http://localhost:3001',
+    // Vite dev server (vite.config.ts). The Go backend uses 3001.
+    baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -42,8 +43,9 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3001',
+    // --strictPort: fail instead of silently moving to 3001 (the backend's port)
+    command: 'npm run dev -- --strictPort',
+    url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },
