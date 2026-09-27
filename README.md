@@ -52,7 +52,7 @@ src/
 │   ├── molecules/      # RecipeCard, MealSlot, DayColumn, WeekNavigation, NutritionCard, ...
 │   └── organisms/      # LoginForm, RegisterForm, OnboardingModal, MealPlanCalendar,
 │                       # RecipeBrowserModal, MealSuggestions, CopyDayModal, ClearPlanModal
-├── contexts/           # AuthContext, RecipeContext, ToastContext
+├── contexts/           # Auth, Recipe and Toast providers (*Context.tsx) and their hooks (use*.ts)
 ├── data/               # mockRecipes.ts (sample recipe catalogue)
 ├── pages/              # Login, Register, Onboarding, Dashboard, MealPlan, Recipes,
 │                       # RecipeDetail, Favorites, RecipeTest (dev-only harness)
@@ -102,7 +102,7 @@ If `VITE_API_URL` is unset, the code falls back to that same value. To point at 
 | `npm run dev` | Start the Vite dev server on port 3000 |
 | `npm run build` | Type-check with `tsc`, then produce a production build in `dist/` |
 | `npm run preview` | Serve the production build locally |
-| `npm run lint` | Run ESLint (zero warnings allowed); currently broken, see known issues |
+| `npm run lint` | Run ESLint (flat config with typescript-eslint and the React Hooks rules; zero warnings allowed) |
 | `npm test` | Run all Playwright tests |
 | `npm run test:ui` / `test:headed` / `test:debug` | Run Playwright in UI, headed or debug mode |
 | `npm run test:epic1` | Run only the authentication and onboarding spec |
@@ -116,7 +116,7 @@ End-to-end tests use Playwright (`tests/`):
 - `epic1-authentication.spec.ts`: registration, login, onboarding and an end-to-end auth flow (17 tests)
 - `epic2-meal-planning.spec.ts`: weekly calendar, adding recipes to slots, suggestions, copy day, clear plan and a full planning flow (33 tests)
 
-`playwright.config.ts` runs them in Chromium, Firefox, WebKit, Pixel 5 and iPhone 12 profiles against `http://localhost:3000`, and starts the dev server itself (or reuses one already running there). The backend has to be running on its default port `3001` because almost every test registers or logs in a real user. Install the browsers once with `npx playwright install`.
+`playwright.config.ts` runs them in Chromium, Firefox, WebKit, Pixel 5 and iPhone 12 profiles against `http://localhost:3000`, and starts the dev server itself (or reuses one already running there). The backend has to be running on its default port `3001` because almost every test registers or logs in a real user; only the three registration-form validation tests (password strength, email format, password confirmation) run without it. Install the browsers once with `npx playwright install`.
 
 There are no unit tests yet.
 
@@ -124,9 +124,7 @@ There are no unit tests yet.
 
 This is an active work in progress. Known gaps:
 
-- **`npm run lint` does not run.** `eslint.config.js` is a flat config that imports `typescript-eslint`, which is not installed, and the script passes `--ext`, which ESLint 8 rejects with a flat config. The CI lint step fails for the same reason. `npx tsc --noEmit` and `npm run build` pass.
 - **Drag and drop is only half built.** The calendar's meal slots are `@dnd-kit` drop targets, but nothing on the page is draggable yet, so meals are added through the recipe picker or the suggestions panel.
-- Some E2E assertions no longer match the UI. For example, the registration spec expects the text "Invalid email" (the form says "Please enter a valid email address", and the browser's own `type="email"` check fires first) and expects `Test123!@#` to rate as "Strong".
 - The user profile from the API has no dietary preferences, so the suggestions panel does not personalise by diet yet.
 - "Remember me" on the login form is not wired up, "Forgot password?" is a placeholder, and the meal-plan **Export** button does nothing.
 - The dashboard does not link to `/recipes` or `/favorites` yet, so those pages are reached by URL.
