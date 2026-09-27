@@ -6,42 +6,35 @@ const STORAGE_KEYS = {
   CURRENT_USER: 'meal_planner_current_user',
 };
 
+// API errors from authApi propagate to the caller unchanged.
 class AuthService {
   /**
    * Register a new user
    */
   async register(email: string, password: string, name?: string): Promise<User> {
-    try {
-      const response: AuthResponse = await authApi.register({ email, password, name });
+    const response: AuthResponse = await authApi.register({ email, password, name });
 
-      // Store token and user data
-      this.setToken(response.token);
-      this.setCurrentUser(response.user);
+    // Store token and user data
+    this.setToken(response.token);
+    this.setCurrentUser(response.user);
 
-      return response.user;
-    } catch (error) {
-      throw error;
-    }
+    return response.user;
   }
 
   /**
    * Login with email and password
    */
   async login(email: string, password: string, _rememberMe: boolean = false): Promise<User> {
-    try {
-      const response: AuthResponse = await authApi.login({ email, password });
+    const response: AuthResponse = await authApi.login({ email, password });
 
-      // Store token and user data
-      this.setToken(response.token);
-      this.setCurrentUser(response.user);
+    // Store token and user data
+    this.setToken(response.token);
+    this.setCurrentUser(response.user);
 
-      // TODO: Implement remember me functionality if needed
-      // Could use a longer-lived refresh token or session storage
+    // TODO: Implement remember me functionality if needed
+    // Could use a longer-lived refresh token or session storage
 
-      return response.user;
-    } catch (error) {
-      throw error;
-    }
+    return response.user;
   }
 
   /**
@@ -95,50 +88,34 @@ class AuthService {
    * Update user profile
    */
   async updateProfile(name?: string, email?: string): Promise<User> {
-    try {
-      const response = await authApi.updateProfile({ name, email });
-      this.setCurrentUser(response.user);
-      return response.user;
-    } catch (error) {
-      throw error;
-    }
+    const response = await authApi.updateProfile({ name, email });
+    this.setCurrentUser(response.user);
+    return response.user;
   }
 
   /**
    * Change password
    */
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
-    try {
-      await authApi.changePassword({ currentPassword, newPassword });
-    } catch (error) {
-      throw error;
-    }
+    await authApi.changePassword({ currentPassword, newPassword });
   }
 
   /**
    * Update user preferences
    */
   async updatePreferences(theme?: 'light' | 'dark', notifications?: boolean): Promise<User> {
-    try {
-      const response = await authApi.updatePreferences({ theme, notifications });
-      this.setCurrentUser(response.user);
-      return response.user;
-    } catch (error) {
-      throw error;
-    }
+    const response = await authApi.updatePreferences({ theme, notifications });
+    this.setCurrentUser(response.user);
+    return response.user;
   }
 
   /**
    * Complete onboarding
    */
   async completeOnboarding(): Promise<User> {
-    try {
-      const response = await authApi.completeOnboarding();
-      this.setCurrentUser(response.user);
-      return response.user;
-    } catch (error) {
-      throw error;
-    }
+    const response = await authApi.completeOnboarding();
+    this.setCurrentUser(response.user);
+    return response.user;
   }
 
   /**
@@ -163,7 +140,7 @@ class AuthService {
     return userStr ? JSON.parse(userStr) : null;
   }
 
-  private setCurrentUser(user: any): void {
+  private setCurrentUser(user: User): void {
     localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
   }
 
