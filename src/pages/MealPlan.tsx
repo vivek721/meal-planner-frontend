@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { startOfWeek, endOfWeek, addDays, format } from 'date-fns';
+import React, { useCallback, useEffect, useState } from 'react';
+import { startOfWeek, addDays, format, parseISO } from 'date-fns';
 import { Trash2, Download } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { MealPlanCalendar } from '../components/organisms/MealPlanCalendar';
 import { RecipeBrowserModal } from '../components/organisms/RecipeBrowserModal';
 import { MealSuggestions } from '../components/organisms/MealSuggestions';
@@ -9,163 +10,118 @@ import { CopyDayModal } from '../components/organisms/CopyDayModal';
 import { ClearPlanModal } from '../components/organisms/ClearPlanModal';
 import { Button } from '../components/atoms/Button';
 import MealPlanService from '../services/MealPlanService';
-import type { Recipe, DayMeals, MealSlot } from '../types/recipe.types';
+import type { MealPlan as MealPlanData, MealType, Recipe } from '../types/recipe.types';
+
+const ALL_MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snacks'];
 
 export const MealPlan: React.FC = () => {
   const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
   const userId = user?.id || '';
-  const userPreferences = user?.preferences?.dietaryPreferences || [];
+
+  // The week being shown. Owned here so the calendar, suggestions and
+  // modals all work on the same week.
+  const [weekStart, setWeekStart] = useState<Date>(() =>
+    startOfWeek(new Date(), { weekStartsOn: 0 })
+  );
+  const [mealPlan, setMealPlan] = useState<MealPlanData | null>(null);
 
   const [isRecipeBrowserOpen, setIsRecipeBrowserOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{
     dayDate: string;
-    mealType: 'breakfast' | 'lunch' | 'dinner' | 'snacks';
+    mealType: MealType;
   } | null>(null);
   const [isCopyDayModalOpen, setIsCopyDayModalOpen] = useState(false);
   const [copySourceDay, setCopySourceDay] = useState<string>('');
   const [isClearPlanModalOpen, setIsClearPlanModalOpen] = useState(false);
-  const [mealPlanData, setMealPlanData] = useState<any>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  const currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const handleAddMealClick = (
-    dayDate: string,
-    mealType: 'breakfast' | 'lunch' | 'dinner' | 'snacks'
-  ) => {
+  // Re-read the shown week from storage (the single source of truth)
+  const refreshMealPlan = useCallback(() => {
+    setMealPlan(userId ? MealPlanService.getMealPlan(userId, weekStart) : null);
+  }, [userId, weekStart]);
+
+  useEffect(() => {
+    refreshMealPlan();
+  }, [refreshMealPlan]);
+
+  const addRecipeToSlot = (recipe: Recipe, dayDate: string, mealType: MealType) => {
+    if (!userId) return;
+
+    const updated = MealPlanService.addMeal(userId, dayDate, mealType, recipe.id);
+    if (!updated) {
+      showError(`Could not add ${recipe.name} to your plan`);
+      return;
+    }
+
+    refreshMealPlan();
+    showSuccess(`${recipe.name} added to ${mealType} on ${format(parseISO(dayDate), 'EEEE')}`);
+  };
+
+  const handleAddMealClick = (dayDate: string, mealType: MealType) => {
     setSelectedSlot({ dayDate, mealType });
     setIsRecipeBrowserOpen(true);
   };
 
-  const handleRecipeSelect = async (recipe: Recipe) => {
-    if (!selectedSlot || !user) return;
-
-    const { dayDate, mealType } = selectedSlot;
-    const weekStartStr = format(currentWeekStart, 'yyyy-MM-dd');
-
-    try {
-      await MealPlanService.addMeal(userId, weekStartStr, dayDate, mealType, {
-        recipeId: recipe.id,
-        recipeName: recipe.name,
-        thumbnail: recipe.thumbnail,
-        prepTime: recipe.prepTime,
-        addedAt: new Date().toISOString(),
-      });
-
-      // Trigger refresh
-      setRefreshKey((prev) => prev + 1);
-
-      // Show success message
-      console.log(`✓ ${recipe.name} added to ${mealType} on ${dayDate}`);
-    } catch (error) {
-      console.error('Failed to add recipe:', error);
-    }
+  const handleRecipeSelect = (recipe: Recipe) => {
+    if (!selectedSlot) return;
+    addRecipeToSlot(recipe, selectedSlot.dayDate, selectedSlot.mealType);
   };
 
-  const handleCopyDayClick = async (dayDate: string) => {
-    if (!user) return;
+  const handleRemoveMeal = (dayDate: string, mealType: MealType) => {
+    if (!userId) return;
+    MealPlanService.removeMeal(userId, dayDate, mealType);
+    refreshMealPlan();
+  };
 
-    const plan = await MealPlanService.getMealPlan(user.id, currentWeekStart);
-
+  const handleCopyDayClick = (dayDate: string) => {
     setCopySourceDay(dayDate);
-    setMealPlanData(plan);
     setIsCopyDayModalOpen(true);
   };
 
-  const handleCopyDay = async (targetDays: string[], replaceExisting: boolean) => {
-    if (!user || !copySourceDay) return;
+  const handleCopyDay = (targetDays: string[], replaceExisting: boolean) => {
+    if (!userId || !copySourceDay) return;
 
-    const weekStartStr = format(currentWeekStart, 'yyyy-MM-dd');
-
-    try {
-      await MealPlanService.copyDay(
-        user.id,
-        weekStartStr,
-        copySourceDay,
-        targetDays,
-        replaceExisting
-      );
-
-      // Trigger refresh
-      setRefreshKey((prev) => prev + 1);
-
-      // Show success message
-      console.log(`✓ Copied meals to ${targetDays.length} day(s)`);
-    } catch (error) {
-      console.error('Failed to copy day:', error);
+    const updated = MealPlanService.copyDay(userId, copySourceDay, targetDays, replaceExisting);
+    if (!updated) {
+      showError('Could not copy meals: the selected day has no meals');
+      return;
     }
+
+    refreshMealPlan();
+    showSuccess(`Copied meals to ${targetDays.length} day${targetDays.length !== 1 ? 's' : ''}`);
   };
 
-  const handleClearPlan = async (options: {
+  const handleClearPlan = (options: {
     targetDays: string[] | 'all';
-    mealTypes?: Array<'breakfast' | 'lunch' | 'dinner' | 'snacks'> | 'all';
+    mealTypes?: MealType[] | 'all';
     deleteShoppingList?: boolean;
   }) => {
-    if (!user) return;
+    if (!userId) return;
 
-    const weekStartStr = format(currentWeekStart, 'yyyy-MM-dd');
+    const allMealTypes = !options.mealTypes || options.mealTypes === 'all';
 
-    try {
-      if (options.targetDays === 'all') {
-        await MealPlanService.clearPlan(user.id, weekStartStr);
-      } else {
-        // Clear specific days/meal types
-        const plan = await MealPlanService.getMealPlan(user.id, currentWeekStart);
+    if (options.targetDays === 'all' && allMealTypes) {
+      MealPlanService.clearPlan(userId, weekStart, { clearAll: true });
+    } else {
+      const days =
+        options.targetDays === 'all'
+          ? weekDays.map((day) => format(day, 'yyyy-MM-dd'))
+          : options.targetDays;
+      const mealTypes = allMealTypes ? ALL_MEAL_TYPES : (options.mealTypes as MealType[]);
 
-        if (plan) {
-          for (const dayDate of options.targetDays) {
-            const mealTypesToClear =
-              options.mealTypes === 'all'
-                ? (['breakfast', 'lunch', 'dinner', 'snacks'] as const)
-                : options.mealTypes || (['breakfast', 'lunch', 'dinner', 'snacks'] as const);
-
-            for (const mealType of mealTypesToClear) {
-              if (plan.days[dayDate]?.[mealType]) {
-                await MealPlanService.removeMeal(user.id, weekStartStr, dayDate, mealType);
-              }
-            }
+      for (const dayDate of days) {
+        for (const mealType of mealTypes) {
+          if (mealPlan?.days[dayDate]?.[mealType]) {
+            MealPlanService.removeMeal(userId, dayDate, mealType);
           }
         }
       }
-
-      // Trigger refresh
-      setRefreshKey((prev) => prev + 1);
-
-      // Show success message
-      console.log('✓ Meal plan cleared');
-    } catch (error) {
-      console.error('Failed to clear plan:', error);
     }
-  };
 
-  const handleAddFromSuggestion = async (
-    recipe: Recipe,
-    dayDate: string,
-    mealType: string
-  ) => {
-    if (!user) return;
-
-    const weekStartStr = format(currentWeekStart, 'yyyy-MM-dd');
-    const mealTypeKey = mealType.toLowerCase() as 'breakfast' | 'lunch' | 'dinner' | 'snacks';
-
-    try {
-      await MealPlanService.addMeal(user.id, weekStartStr, dayDate, mealTypeKey, {
-        recipeId: recipe.id,
-        recipeName: recipe.name,
-        thumbnail: recipe.thumbnail,
-        prepTime: recipe.prepTime,
-        addedAt: new Date().toISOString(),
-      });
-
-      // Trigger refresh
-      setRefreshKey((prev) => prev + 1);
-
-      // Show success message
-      console.log(`✓ ${recipe.name} added from AI suggestions`);
-    } catch (error) {
-      console.error('Failed to add recipe from suggestion:', error);
-    }
+    refreshMealPlan();
+    showSuccess('Meal plan cleared');
   };
 
   return (
@@ -197,17 +153,19 @@ export const MealPlan: React.FC = () => {
         <div className="space-y-8">
           {/* Meal Plan Calendar */}
           <MealPlanCalendar
-            key={refreshKey}
-            userId={userId}
+            weekStart={weekStart}
+            onWeekStartChange={setWeekStart}
+            mealPlan={mealPlan}
             onAddMealClick={handleAddMealClick}
+            onRemoveMeal={handleRemoveMeal}
+            onDropRecipe={addRecipeToSlot}
             onCopyDayClick={handleCopyDayClick}
           />
 
-          {/* AI Suggestions */}
+          {/* Suggestions (the user profile has no dietary preferences yet) */}
           <MealSuggestions
             userId={userId}
-            preferences={userPreferences}
-            onAddToPlan={handleAddFromSuggestion}
+            onAddToPlan={addRecipeToSlot}
             weekDays={weekDays}
           />
         </div>
@@ -221,31 +179,31 @@ export const MealPlan: React.FC = () => {
           }}
           onSelectRecipe={handleRecipeSelect}
           dayName={
-            selectedSlot ? format(new Date(selectedSlot.dayDate), 'EEEE, MMM d') : undefined
+            selectedSlot ? format(parseISO(selectedSlot.dayDate), 'EEEE, MMM d') : undefined
           }
           mealType={selectedSlot?.mealType}
         />
 
         {/* Copy Day Modal */}
-        {mealPlanData && (
+        {mealPlan && copySourceDay && (
           <CopyDayModal
             isOpen={isCopyDayModalOpen}
             onClose={() => setIsCopyDayModalOpen(false)}
             sourceDayDate={copySourceDay}
-            sourceDayMeals={mealPlanData.days[copySourceDay] || {}}
+            sourceDayMeals={mealPlan.days[copySourceDay] || {}}
             weekDays={weekDays}
-            existingMeals={mealPlanData.days}
+            existingMeals={mealPlan.days}
             onCopy={handleCopyDay}
           />
         )}
 
         {/* Clear Plan Modal */}
-        {mealPlanData && (
+        {mealPlan && (
           <ClearPlanModal
             isOpen={isClearPlanModalOpen}
             onClose={() => setIsClearPlanModalOpen(false)}
             weekDays={weekDays}
-            existingMeals={mealPlanData.days || {}}
+            existingMeals={mealPlan.days}
             hasShoppingList={false}
             onClear={handleClearPlan}
           />

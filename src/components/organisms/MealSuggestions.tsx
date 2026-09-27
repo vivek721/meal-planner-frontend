@@ -5,19 +5,29 @@ import { Dropdown } from '../atoms/Dropdown';
 import { Modal } from '../atoms/Modal';
 import { SuggestionCard } from '../molecules/SuggestionCard';
 import MockAIService from '../../services/MockAIService';
-import type { Recipe } from '../../types/recipe.types';
+import type { MealType, Recipe } from '../../types/recipe.types';
 import { format } from 'date-fns';
 
 interface MealSuggestionsProps {
   userId: string;
   preferences?: string[];
-  onAddToPlan: (recipe: Recipe, dayDate: string, mealType: string) => void;
+  onAddToPlan: (recipe: Recipe, dayDate: string, mealType: MealType) => void;
   weekDays: Date[];
 }
 
+// Stable default so the effect below does not re-run on every render
+const NO_PREFERENCES: string[] = [];
+
+const mealTypeOptions: Array<{ value: MealType; label: string }> = [
+  { value: 'breakfast', label: 'Breakfast' },
+  { value: 'lunch', label: 'Lunch' },
+  { value: 'dinner', label: 'Dinner' },
+  { value: 'snacks', label: 'Snacks' },
+];
+
 export const MealSuggestions: React.FC<MealSuggestionsProps> = ({
   userId,
-  preferences = [],
+  preferences = NO_PREFERENCES,
   onAddToPlan,
   weekDays,
 }) => {
@@ -26,9 +36,7 @@ export const MealSuggestions: React.FC<MealSuggestionsProps> = ({
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string>('');
-  const [selectedMealType, setSelectedMealType] = useState<string>('');
-
-  const mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
+  const [selectedMealType, setSelectedMealType] = useState<MealType>('breakfast');
 
   useEffect(() => {
     loadSuggestions();
@@ -60,19 +68,22 @@ export const MealSuggestions: React.FC<MealSuggestionsProps> = ({
   const handleAddToPlan = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
     setSelectedDay(format(weekDays[0], 'yyyy-MM-dd'));
-    setSelectedMealType('Breakfast');
+    setSelectedMealType('breakfast');
     setIsModalOpen(true);
   };
 
   const handleConfirmAdd = () => {
     if (selectedRecipe && selectedDay && selectedMealType) {
-      onAddToPlan(selectedRecipe, selectedDay, selectedMealType.toLowerCase());
+      onAddToPlan(selectedRecipe, selectedDay, selectedMealType);
       setIsModalOpen(false);
       setSelectedRecipe(null);
     }
   };
 
-  const dayOptions = weekDays.map((day) => format(day, 'EEEE, MMM d'));
+  const dayOptions = weekDays.map((day) => ({
+    value: format(day, 'yyyy-MM-dd'),
+    label: format(day, 'EEEE, MMM d'),
+  }));
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -122,11 +133,11 @@ export const MealSuggestions: React.FC<MealSuggestionsProps> = ({
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        title="Add to Meal Plan"
         size="sm"
       >
         <div className="space-y-6">
           <div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Add to Meal Plan</h3>
             {selectedRecipe && (
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <img
@@ -150,11 +161,8 @@ export const MealSuggestions: React.FC<MealSuggestionsProps> = ({
                 Choose Day
               </label>
               <Dropdown
-                value={dayOptions[weekDays.findIndex((d) => format(d, 'yyyy-MM-dd') === selectedDay)]}
-                onChange={(value) => {
-                  const dayIndex = dayOptions.indexOf(value);
-                  setSelectedDay(format(weekDays[dayIndex], 'yyyy-MM-dd'));
-                }}
+                value={selectedDay}
+                onChange={setSelectedDay}
                 options={dayOptions}
               />
             </div>
@@ -165,8 +173,8 @@ export const MealSuggestions: React.FC<MealSuggestionsProps> = ({
               </label>
               <Dropdown
                 value={selectedMealType}
-                onChange={setSelectedMealType}
-                options={mealTypes}
+                onChange={(value) => setSelectedMealType(value as MealType)}
+                options={mealTypeOptions}
               />
             </div>
           </div>
