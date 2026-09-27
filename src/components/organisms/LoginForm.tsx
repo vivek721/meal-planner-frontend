@@ -66,7 +66,9 @@ export const LoginForm: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* noValidate: the Zod schema above does the validation and shows its own
+            messages; native checks on type="email"/required would pre-empt them */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div>
             <Input
               {...register('email')}
