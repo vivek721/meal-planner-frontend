@@ -27,12 +27,15 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
       await passwordInput.fill('weak');
 
       // Should show weak indicator
-      await expect(page.locator('text=Weak')).toBeVisible();
+      await expect(page.getByText('Weak', { exact: true })).toBeVisible();
 
+      // Meets every rule but is under 12 characters (see calculatePasswordStrength)
       await passwordInput.fill('Test123!@#');
+      await expect(page.getByText('Medium', { exact: true })).toBeVisible();
 
-      // Should show strong indicator
-      await expect(page.locator('text=Strong')).toBeVisible();
+      // 12+ characters with upper, lower, digit and symbol
+      await passwordInput.fill('Test123!@#abc');
+      await expect(page.getByText('Strong', { exact: true })).toBeVisible();
     });
 
     test('should validate email format', async ({ page }) => {
@@ -43,8 +46,9 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
       await page.fill('input[name="confirmPassword"]', 'Test123!@#');
       await page.click('button[type="submit"]');
 
-      // Should show validation error
-      await expect(page.locator('text=Invalid email')).toBeVisible();
+      // Should show the form's validation error (message from the Zod schema in RegisterForm)
+      await expect(page.getByText('Please enter a valid email address')).toBeVisible();
+      await expect(page).toHaveURL(/\/register/);
     });
 
     test('should validate password confirmation match', async ({ page }) => {
