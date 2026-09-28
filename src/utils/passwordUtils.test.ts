@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculatePasswordStrength, validatePassword, mapAuthErrorMessage } from './passwordUtils';
+import { calculatePasswordStrength, validatePassword, mapAuthErrorMessage, passwordSchema } from './passwordUtils';
 
 describe('validatePassword', () => {
   it('rejects passwords under 8 characters', () => {
@@ -27,6 +27,37 @@ describe('validatePassword', () => {
   });
 
   it('does not accept whitespace as a special character', () => {
+    expect(validatePassword('Password 1')).toBe('Password must contain at least one special character');
+  });
+});
+
+describe('passwordSchema (the single source of truth RegisterForm uses directly)', () => {
+  it('accepts a password meeting every rule', () => {
+    expect(passwordSchema.safeParse('Test123!@#').success).toBe(true);
+  });
+
+  it('rejects a password missing a special character', () => {
+    expect(passwordSchema.safeParse('NoSpecial123').success).toBe(false);
+  });
+});
+
+// Go's ValidatePassword (internal/utils/validator.go) checks unicode.IsUpper / IsLower /
+// IsNumber / (IsPunct || IsSymbol) on every rune, not just the ASCII ranges. These cases
+// would misclassify under a plain [A-Za-z0-9] / [^A-Za-z0-9\s] ASCII regex.
+describe('Unicode category parity with the backend', () => {
+  it('does not count an accented letter as a special character (é is \\p{Ll}, a letter)', () => {
+    expect(validatePassword('Password1é')).toBe('Password must contain at least one special character');
+  });
+
+  it('accepts underscore as a special character (Unicode punctuation, Pc)', () => {
+    expect(validatePassword('Password1_')).toBeNull();
+  });
+
+  it('accepts the euro sign as a special character (Unicode symbol, Sc)', () => {
+    expect(validatePassword('Password1€')).toBeNull();
+  });
+
+  it('rejects a password whose only non-alphanumeric character is a space', () => {
     expect(validatePassword('Password 1')).toBe('Password must contain at least one special character');
   });
 });

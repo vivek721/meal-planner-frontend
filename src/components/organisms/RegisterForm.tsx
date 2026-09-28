@@ -8,19 +8,14 @@ import { useAuth } from '../../contexts/useAuth';
 import { Input } from '../atoms/Input';
 import { Button } from '../atoms/Button';
 import { PasswordStrengthIndicator } from '../molecules/PasswordStrengthIndicator';
-import { mapAuthErrorMessage } from '../../utils/passwordUtils';
+import { mapAuthErrorMessage, passwordSchema } from '../../utils/passwordUtils';
 
-// Mirrors the backend's ValidatePassword (internal/utils/validator.go): length, upper,
-// lower, number, special character.
+// password uses passwordSchema (src/utils/passwordUtils.ts) as its single source of
+// truth, so it stays in sync with the backend's ValidatePassword (internal/utils/
+// validator.go) and with the password-strength indicator.
 const registerSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/\d/, 'Password must contain at least one number')
-    .regex(/[^A-Za-z0-9\s]/, 'Password must contain at least one special character'),
+  password: passwordSchema,
   confirmPassword: z.string(),
   name: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {

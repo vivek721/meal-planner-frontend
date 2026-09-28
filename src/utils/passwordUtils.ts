@@ -1,17 +1,45 @@
+import { z } from 'zod';
 import { PasswordStrength } from '../types/auth.types';
 
-// Not letter/number/whitespace. Mirrors the backend's unicode.IsPunct || unicode.IsSymbol
-// check (internal/utils/validator.go) closely enough for ASCII passwords, and explicitly
-// excludes whitespace so a password can't satisfy the rule with a plain space.
-const SPECIAL_CHAR_REGEX = /[^A-Za-z0-9\s]/;
+// Character-class regexes mirroring the backend's ValidatePassword (internal/utils/
+// validator.go), which classifies every rune with Go's unicode.IsUpper / IsLower /
+// IsNumber / (IsPunct || IsSymbol) — not just the ASCII ranges. The equivalent Unicode
+// property escapes: \p{Lu} (uppercase letter), \p{Ll} (lowercase letter), \p{N} (any
+// numeric character, not just ASCII digits), and \p{P} or \p{S} (punctuation or symbol).
+// The 'u' flag is required for \p{...} escapes to work.
+export const UPPERCASE_REGEX = /\p{Lu}/u;
+export const LOWERCASE_REGEX = /\p{Ll}/u;
+export const NUMBER_REGEX = /\p{N}/u;
+export const SPECIAL_CHAR_REGEX = /[\p{P}\p{S}]/u;
+
+export const PASSWORD_MIN_LENGTH = 8;
+
+const PASSWORD_RULE_MESSAGES = {
+  minLength: `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
+  uppercase: 'Password must contain at least one uppercase letter',
+  lowercase: 'Password must contain at least one lowercase letter',
+  number: 'Password must contain at least one number',
+  special: 'Password must contain at least one special character',
+} as const;
+
+// Single source of truth for the password rule. RegisterForm's Zod schema uses this
+// directly; validatePassword below (used by the strength indicator's callers and any
+// non-form caller) delegates to it too, so there is exactly one place the rule is defined.
+export const passwordSchema = z
+  .string()
+  .min(PASSWORD_MIN_LENGTH, PASSWORD_RULE_MESSAGES.minLength)
+  .regex(UPPERCASE_REGEX, PASSWORD_RULE_MESSAGES.uppercase)
+  .regex(LOWERCASE_REGEX, PASSWORD_RULE_MESSAGES.lowercase)
+  .regex(NUMBER_REGEX, PASSWORD_RULE_MESSAGES.number)
+  .regex(SPECIAL_CHAR_REGEX, PASSWORD_RULE_MESSAGES.special);
 
 export const calculatePasswordStrength = (password: string): PasswordStrength => {
   let strength = 0;
 
   if (password.length >= 8) strength++;
   if (password.length >= 12) strength++;
-  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
-  if (/\d/.test(password)) strength++;
+  if (LOWERCASE_REGEX.test(password) && UPPERCASE_REGEX.test(password)) strength++;
+  if (NUMBER_REGEX.test(password)) strength++;
   if (SPECIAL_CHAR_REGEX.test(password)) strength++;
 
   if (strength <= 2) return 'weak';
@@ -19,24 +47,13 @@ export const calculatePasswordStrength = (password: string): PasswordStrength =>
   return 'strong';
 };
 
-// Mirrors the backend's ValidatePassword (internal/utils/validator.go): at least 8
-// characters, plus an uppercase letter, a lowercase letter, a number, and a special
-// character.
+// Mirrors the backend's ValidatePassword (internal/utils/validator.go) via passwordSchema
+// above: at least 8 characters, plus an uppercase letter, a lowercase letter, a number,
+// and a special character.
 export const validatePassword = (password: string): string | null => {
-  if (password.length < 8) {
-    return 'Password must be at least 8 characters';
-  }
-  if (!/[A-Z]/.test(password)) {
-    return 'Password must contain at least one uppercase letter';
-  }
-  if (!/[a-z]/.test(password)) {
-    return 'Password must contain at least one lowercase letter';
-  }
-  if (!/\d/.test(password)) {
-    return 'Password must contain at least one number';
-  }
-  if (!SPECIAL_CHAR_REGEX.test(password)) {
-    return 'Password must contain at least one special character';
+  const result = passwordSchema.safeParse(password);
+  if (!result.success) {
+    return result.error.issues[0]?.message ?? 'Invalid password';
   }
   return null;
 };
