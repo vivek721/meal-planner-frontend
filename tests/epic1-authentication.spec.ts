@@ -130,19 +130,25 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
     test('should lock account after 3 failed login attempts', async ({ page }) => {
       await page.goto('/login');
 
-      // Try 3 times with wrong password
+      // Try 3 times with wrong password. MaxLoginAttempts is 3 (internal/services/
+      // auth_service.go), so the 3rd attempt is the one that crosses the threshold and
+      // locks the account in the same request - it responds 403 with the sentinel
+      // ErrAccountLocked's text, "account is locked due to too many failed login
+      // attempts". A later attempt against an already-locked account instead hits the
+      // early IsAccountLocked() check and gets AccountLockedError's text, "account is
+      // locked. Please try again in N minute(s)". Either way the copy contains "locked".
+      // Wait for each attempt's response to render before submitting the next one,
+      // instead of a fixed sleep.
       for (let i = 0; i < 3; i++) {
         await page.fill('input[name="email"]', testEmail);
         await page.fill('input[name="password"]', 'WrongPassword');
         await page.click('button[type="submit"]');
-        await page.waitForTimeout(500);
+        await expect(page.getByText(/invalid email or password|locked/i)).toBeVisible();
       }
 
-      // Should show lock message. The backend's actual copy (internal/services/auth_service.go,
-      // ErrAccountLocked/AccountLockedError) is "account is locked. Please try again in N
-      // minute(s)", not the "Account locked"/"too many attempts" copy this test used to assert.
-      // Two elements match /locked/i once locked (the message and the "temporarily locked"
-      // follow-up LoginForm renders alongside it), so assert on the first.
+      // Should show lock message. Two elements match /locked/i once locked (the message
+      // and the "temporarily locked" follow-up LoginForm renders alongside it), so assert
+      // on the first.
       await expect(page.getByText(/locked/i).first()).toBeVisible();
     });
 
