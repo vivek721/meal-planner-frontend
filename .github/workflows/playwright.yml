@@ -104,6 +104,10 @@ jobs:
     name: Epic 1 - Authentication Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Disabled: epic1-authentication.spec.ts needs a live backend, which this workflow does
+    # not provision (see tests/README.md and playwright.config.ts's CI-only testIgnore).
+    # Re-enable once a backend service is available to this job.
+    if: false
 
     steps:
       - name: Checkout code
@@ -158,7 +162,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Epic 2 tests
-        run: npm run test:epic2
+        run: npm run test:epic2 -- --project=chromium
         env:
           CI: true
 

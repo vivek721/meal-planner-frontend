@@ -10,7 +10,7 @@ import { CopyDayModal } from '../components/organisms/CopyDayModal';
 import { ClearPlanModal } from '../components/organisms/ClearPlanModal';
 import { Button } from '../components/atoms/Button';
 import MealPlanService from '../services/MealPlanService';
-import type { MealPlan as MealPlanData, MealType, Recipe } from '../types/recipe.types';
+import type { MealPlan as MealPlanData, MealType, RecipeSummary } from '../types/recipe.types';
 
 const ALL_MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snacks'];
 
@@ -46,10 +46,10 @@ export const MealPlan: React.FC = () => {
     refreshMealPlan();
   }, [refreshMealPlan]);
 
-  const addRecipeToSlot = (recipe: Recipe, dayDate: string, mealType: MealType) => {
+  const addRecipeToSlot = (recipe: RecipeSummary, dayDate: string, mealType: MealType) => {
     if (!userId) return;
 
-    const updated = MealPlanService.addMeal(userId, dayDate, mealType, recipe.id);
+    const updated = MealPlanService.addMeal(userId, dayDate, mealType, recipe);
     if (!updated) {
       showError(`Could not add ${recipe.name} to your plan`);
       return;
@@ -64,7 +64,7 @@ export const MealPlan: React.FC = () => {
     setIsRecipeBrowserOpen(true);
   };
 
-  const handleRecipeSelect = (recipe: Recipe) => {
+  const handleRecipeSelect = (recipe: RecipeSummary) => {
     if (!selectedSlot) return;
     addRecipeToSlot(recipe, selectedSlot.dayDate, selectedSlot.mealType);
   };
@@ -170,19 +170,21 @@ export const MealPlan: React.FC = () => {
           />
         </div>
 
-        {/* Recipe Browser Modal */}
-        <RecipeBrowserModal
-          isOpen={isRecipeBrowserOpen}
-          onClose={() => {
-            setIsRecipeBrowserOpen(false);
-            setSelectedSlot(null);
-          }}
-          onSelectRecipe={handleRecipeSelect}
-          dayName={
-            selectedSlot ? format(parseISO(selectedSlot.dayDate), 'EEEE, MMM d') : undefined
-          }
-          mealType={selectedSlot?.mealType}
-        />
+        {/* Recipe Browser Modal (mounted only while open) */}
+        {isRecipeBrowserOpen && (
+          <RecipeBrowserModal
+            isOpen={isRecipeBrowserOpen}
+            onClose={() => {
+              setIsRecipeBrowserOpen(false);
+              setSelectedSlot(null);
+            }}
+            onSelectRecipe={handleRecipeSelect}
+            dayName={
+              selectedSlot ? format(parseISO(selectedSlot.dayDate), 'EEEE, MMM d') : undefined
+            }
+            mealType={selectedSlot?.mealType}
+          />
+        )}
 
         {/* Copy Day Modal */}
         {mealPlan && copySourceDay && (

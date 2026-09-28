@@ -1,100 +1,165 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Search, Filter, Home } from 'lucide-react';
+import { Filter, Heart, Home, Search } from 'lucide-react';
 import { useRecipes } from '../contexts/useRecipes';
 import { Breadcrumb } from '../components/atoms/Breadcrumb';
-import { Input } from '../components/atoms/Input';
 import { Button } from '../components/atoms/Button';
 import { Dropdown } from '../components/atoms/Dropdown';
+import { Input } from '../components/atoms/Input';
+import { ErrorPanel } from '../components/molecules/ErrorPanel';
 import { RecipeCard } from '../components/molecules/RecipeCard';
-import type { Recipe, MealCategory } from '../types/recipe.types';
+import { useAsync } from '../hooks/useAsync';
+import { MAX_SEARCH_LENGTH } from '../services/api/recipesApi';
+import { loadFavoriteRecipes } from '../services/recipes/favorites';
+import { getRecipe } from '../services/recipes/recipeData';
+import { filterOptions } from '../services/recipes/recipeUtils';
 
-type SortOption = 'name' | 'recent' | 'time' | 'rating';
+type SortOption = 'recent' | 'name';
 
-const sortRecipes = (recipes: Recipe[], sort: SortOption): Recipe[] => {
-  const sorted = [...recipes];
-
-  switch (sort) {
-    case 'name':
-      return sorted.sort((a, b) => a.name.localeCompare(b.name));
-
-    case 'time':
-      return sorted.sort((a, b) => {
-        const aTime = a.prepTime + a.cookTime;
-        const bTime = b.prepTime + b.cookTime;
-        return aTime - bTime;
-      });
-
-    case 'rating':
-      return sorted.sort((a, b) => {
-        const aRating = a.rating || 0;
-        const bRating = b.rating || 0;
-        return bRating - aRating;
-      });
-
-    case 'recent':
-    default:
-      // Keep original order (most recently added first)
-      return sorted.reverse();
-  }
-};
+const sortOptions = [
+  { value: 'recent', label: 'Recently Added' },
+  { value: 'name', label: 'Name (A-Z)' },
+];
 
 export const Favorites: React.FC = () => {
   const navigate = useNavigate();
-  const { favoriteRecipes, loadFavorites } = useRecipes();
+  const { favoriteIds } = useRecipes();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
 
-  const categories = ['All', 'Breakfast', 'Lunch', 'Dinner', 'Snack', 'Dessert'].map(
-    (category) => ({ value: category, label: category })
-  );
-  const sortOptions = [
-    { value: 'recent', label: 'Recently Added' },
-    { value: 'name', label: 'Name (A-Z)' },
-    { value: 'time', label: 'Quickest First' },
-    { value: 'rating', label: 'Highest Rated' },
-  ];
+  // Details come from the per-session cache, so revisits cost no requests
+  const loadFavorites = useCallback(() => loadFavoriteRecipes(favoriteIds, getRecipe), [favoriteIds]);
+  const favorites = useAsync(favoriteIds.length > 0 ? loadFavorites : null);
+  const recipes = useMemo(() => favorites.data ?? [], [favorites.data]);
 
-  useEffect(() => {
-    loadFavorites();
-  }, [loadFavorites]);
+  const categoryOptions = useMemo(
+    () =>
+      filterOptions(
+        'All categories',
+        Array.from(new Set(recipes.map((recipe) => recipe.category))).sort(),
+        selectedCategory,
+      ),
+    [recipes, selectedCategory],
+  );
 
   const filteredRecipes = useMemo(() => {
-    let filtered = [...favoriteRecipes];
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (recipe) =>
-          recipe.name.toLowerCase().includes(query) ||
-          recipe.description?.toLowerCase().includes(query) ||
-          recipe.cuisine.toLowerCase().includes(query) ||
-          recipe.dietaryTags.some((tag) => tag.toLowerCase().includes(query))
-      );
-    }
-
-    // Category filter
-    if (selectedCategory !== 'All') {
-      filtered = filtered.filter(
-        (recipe) => recipe.category === selectedCategory as MealCategory
-      );
-    }
-
-    return sortRecipes(filtered, sortBy);
-  }, [favoriteRecipes, searchQuery, selectedCategory, sortBy]);
-
-  const handleRecipeClick = (recipe: Recipe) => {
-    navigate(`/recipes/${recipe.id}`);
-  };
+    const query = searchQuery.trim().toLowerCase();
+    const matching = recipes.filter(
+      (recipe) =>
+        (!query || recipe.name.toLowerCase().includes(query)) &&
+        (!selectedCategory || recipe.category === selectedCategory),
+    );
+    // Saved order is oldest first, so "recent" is that order reversed
+    return sortBy === 'name'
+      ? [...matching].sort((a, b) => a.name.localeCompare(b.name))
+      : [...matching].reverse();
+  }, [recipes, searchQuery, selectedCategory, sortBy]);
 
   const handleClearFilters = () => {
     setSearchQuery('');
-    setSelectedCategory('All');
+    setSelectedCategory('');
     setSortBy('recent');
   };
+
+  const count = favorites.data ? recipes.length : favoriteIds.length;
+  const isEmpty = favoriteIds.length === 0 || (favorites.data !== null && recipes.length === 0);
+
+  let content: React.ReactNode;
+  if (isEmpty) {
+    content = (
+      <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+        <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">No favorites yet</h2>
+        <p className="text-gray-600 mb-6">Start saving recipes you love by clicking the heart icon</p>
+        <div className="flex justify-center">
+          <Button onClick={() => navigate('/recipes')}>Browse Recipes</Button>
+        </div>
+      </div>
+    );
+  } else if (favorites.loading) {
+    content = (
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {Array.from({ length: Math.min(favoriteIds.length, 8) }).map((_, i) => (
+          <div key={i} className="h-72 bg-gray-200 rounded-lg animate-pulse"></div>
+        ))}
+      </div>
+    );
+  } else if (favorites.error) {
+    content = <ErrorPanel message={favorites.error.message} onRetry={favorites.retry} />;
+  } else {
+    content = (
+      <>
+        {/* Filters & Search */}
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
+          <div className="grid md:grid-cols-4 gap-4">
+            <div className="md:col-span-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                <Input
+                  type="text"
+                  aria-label="Search favorites"
+                  placeholder="Search favorites by name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  maxLength={MAX_SEARCH_LENGTH}
+                  className="pl-10 py-3"
+                />
+              </div>
+            </div>
+
+            <Dropdown
+              ariaLabel="Category"
+              value={selectedCategory}
+              onChange={setSelectedCategory}
+              options={categoryOptions}
+              placeholder=""
+            />
+
+            <Dropdown
+              ariaLabel="Sort by"
+              value={sortBy}
+              onChange={(value) => setSortBy(value as SortOption)}
+              options={sortOptions}
+              placeholder=""
+            />
+          </div>
+
+          {(searchQuery || selectedCategory) && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+              <p className="text-sm text-gray-600">
+                Showing {filteredRecipes.length} of {recipes.length} favorites
+              </p>
+              <Button variant="ghost" size="sm" onClick={handleClearFilters}>
+                Clear Filters
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Results */}
+        {filteredRecipes.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+            <Filter className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">No recipes found</h2>
+            <p className="text-gray-600 mb-6">Try adjusting your search or filters</p>
+            <div className="flex justify-center">
+              <Button variant="outline" onClick={handleClearFilters}>
+                Clear Filters
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredRecipes.map((recipe) => (
+              <RecipeCard key={recipe.id} recipe={recipe} onClick={() => navigate(`/recipes/${recipe.id}`)} />
+            ))}
+          </div>
+        )}
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -118,110 +183,11 @@ export const Favorites: React.FC = () => {
             <h1 className="text-4xl font-bold text-gray-900">My Favorites</h1>
           </div>
           <p className="text-gray-600">
-            Your collection of saved recipes - {favoriteRecipes.length}{' '}
-            {favoriteRecipes.length === 1 ? 'recipe' : 'recipes'}
+            Your collection of saved recipes - {count} {count === 1 ? 'recipe' : 'recipes'}
           </p>
         </div>
 
-        {favoriteRecipes.length === 0 ? (
-          /* Empty State */
-          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-            <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              No favorites yet
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Start saving recipes you love by clicking the heart icon
-            </p>
-            <Button onClick={() => navigate('/recipes')}>
-              Browse Recipes
-            </Button>
-          </div>
-        ) : (
-          <>
-            {/* Filters & Search */}
-            <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-              <div className="grid md:grid-cols-4 gap-4">
-                {/* Search */}
-                <div className="md:col-span-2">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <Input
-                      type="text"
-                      placeholder="Search favorites..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-
-                {/* Category Filter */}
-                <Dropdown
-                  value={selectedCategory}
-                  onChange={setSelectedCategory}
-                  options={categories}
-                  placeholder="Category"
-                />
-
-                {/* Sort */}
-                <Dropdown
-                  value={sortBy}
-                  onChange={(value) => setSortBy(value as SortOption)}
-                  options={sortOptions.map((opt) => ({
-                    value: opt.value,
-                    label: opt.label,
-                  }))}
-                  placeholder="Sort by"
-                />
-              </div>
-
-              {/* Active Filters */}
-              {(searchQuery || selectedCategory !== 'All') && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-sm text-gray-600">
-                    Showing {filteredRecipes.length} of {favoriteRecipes.length}{' '}
-                    favorites
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClearFilters}
-                  >
-                    Clear Filters
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Results */}
-            {filteredRecipes.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-                <Filter className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  No recipes found
-                </h2>
-                <p className="text-gray-600 mb-6">
-                  Try adjusting your search or filters
-                </p>
-                <Button variant="outline" onClick={handleClearFilters}>
-                  Clear Filters
-                </Button>
-              </div>
-            ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredRecipes.map((recipe) => (
-                  <RecipeCard
-                    key={recipe.id}
-                    recipe={recipe}
-                    onClick={() => handleRecipeClick(recipe)}
-                    showFavorite={true}
-                  />
-                ))}
-              </div>
-            )}
-          </>
-        )}
+        {content}
       </div>
     </div>
   );

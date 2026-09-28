@@ -8,29 +8,6 @@ export class MealPlanHelper {
     await this.page.waitForLoadState('networkidle');
   }
 
-  async addMealToSlot(dayIndex: number, mealType: 'breakfast' | 'lunch' | 'dinner' | 'snacks', recipeIndex: number = 0) {
-    // Click on the meal slot
-    const dayColumns = await this.page.locator('[class*="Day"]').all();
-    const dayColumn = dayColumns[dayIndex];
-
-    // Find the meal slot by meal type
-    const mealSlot = dayColumn.locator(`text=${mealType}`).locator('..').locator('button:has-text("Add meal")');
-    await mealSlot.click();
-
-    // Wait for recipe browser modal
-    await this.page.waitForSelector('text=Add Recipe', { timeout: 5000 });
-
-    // Select a recipe (click on the first recipe card)
-    const recipeCards = await this.page.locator('[class*="RecipeCard"]').all();
-    await recipeCards[recipeIndex].click();
-
-    // Click "Add to" button
-    await this.page.click('button:has-text("Add to")');
-
-    // Wait for modal to close
-    await this.page.waitForSelector('text=Add Recipe', { state: 'hidden', timeout: 5000 });
-  }
-
   async removeMealFromSlot(dayIndex: number, mealType: 'breakfast' | 'lunch' | 'dinner' | 'snacks') {
     const dayColumns = await this.page.locator('[class*="Day"]').all();
     const dayColumn = dayColumns[dayIndex];
@@ -125,7 +102,7 @@ export class MealPlanHelper {
   }
 
   async navigateToThisWeek() {
-    await this.page.click('button:has-text("This Week")');
+    await this.page.getByRole('button', { name: 'This week' }).click();
     await this.page.waitForTimeout(300);
   }
 

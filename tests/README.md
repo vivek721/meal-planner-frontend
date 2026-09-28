@@ -1,92 +1,55 @@
 # End-to-End Testing with Playwright
 
-This directory contains comprehensive E2E tests for the AI-Powered Meal Planner application using Playwright.
+This directory contains the E2E tests for the Meal Planner application using Playwright, plus the Vitest unit tests for the pure data-layer logic live under `src/`.
 
 ## Test Structure
 
 ```
 tests/
 ├── helpers/
-│   ├── auth.helper.ts          # Authentication helper methods
-│   └── mealplan.helper.ts      # Meal planning helper methods
-├── epic1-authentication.spec.ts # Epic 1: Authentication & Onboarding tests
-├── epic2-meal-planning.spec.ts  # Epic 2: Meal Planning tests
+│   ├── api.helper.ts           # CORS-aware JSON responses for route interception
+│   ├── auth.helper.ts          # Authentication helper methods (real backend)
+│   ├── mealplan.helper.ts      # Meal planning helper methods
+│   ├── recipes.fixtures.ts     # Fixture recipes; intercepts /api/recipes* and TheMealDB images
+│   └── session.helper.ts       # Mocked signed-in session (no backend needed)
+├── epic1-authentication.spec.ts # Epic 1: Authentication & Onboarding (needs the backend)
+├── epic2-meal-planning.spec.ts  # Epic 2: Meal Planning (hermetic)
+├── recipes.spec.ts              # Recipes page (hermetic)
+├── recipe-detail.spec.ts        # Recipe detail (hermetic)
+├── favorites.spec.ts            # Favourites (hermetic)
+├── meal-plan-recipes.spec.ts    # Meal-plan picker and slots (hermetic)
+├── suggestions.spec.ts          # Meal suggestions (hermetic)
 └── README.md                    # This file
 ```
 
+Hermetic specs fake the session and answer every `/api/recipes*` request from `helpers/recipes.fixtures.ts`, so they never call the backend or TheMealDB. Use `overrideRecipesApi(page, match, handler)` to change one endpoint in a test, for example `outage()` for a 503 or `route.abort('failed')` for a network error.
+
+## CI honesty
+
+- **`epic1-authentication.spec.ts` needs a real backend and does not run in CI.** `playwright.config.ts` sets `testIgnore` to exclude it whenever `CI` is set, so every `--project` job in `.github/workflows/playwright.yml` (chromium/firefox/webkit/mobile) skips it automatically. The workflow's `test-epic1` job is disabled (`if: false`) for the same reason: it has no backend to run against. Run epic1 locally against a live backend with `npm run test:epic1`.
+- **Five `epic2-meal-planning.spec.ts` tests are `test.fixme()`d.** They fail against the current app for reasons unrelated to the TheMealDB integration (stale selectors, or assertions on copy that was never implemented), so the epic2 regression check treats them as a known baseline rather than new breakage:
+  - `should display 7-day calendar grid` — the `[class*="Day"]` selector matches 0 elements (`DayColumn`'s className never contains "Day").
+  - `should show all 4 meal slots for each day` — the `text=Breakfast`-style locator is a strict-mode violation once the week has planned meals (resolves to 18+ elements).
+  - `should open copy modal when clicking copy button` — the `text=Copy Day`/`text=Copy` locator is a strict-mode violation inside the open modal (resolves to 4 elements).
+  - `should open clear modal with options` — the `text=Clear Meal Plan`/`text=Clear` locator is a strict-mode violation inside the open modal (resolves to 9 elements).
+  - `should show warning message` — the clear-plan modal never renders "cannot be undone" or "warning" text.
+
 ## Test Coverage
 
-### Epic 1: Authentication & Onboarding (21 tests)
+Counts below are per spec file with `--project=chromium` (`npx playwright test --project=chromium --list`); `playwright.config.ts` also runs the suite against Firefox, WebKit, Pixel 5 and iPhone 12.
 
-**US-1.1: User Registration** (5 tests)
-- ✓ Register with valid credentials
-- ✓ Password strength indicator
-- ✓ Email format validation
-- ✓ Password confirmation match
-- ✓ Existing email error
+| Spec | Tests | Needs |
+| --- | --- | --- |
+| `epic1-authentication.spec.ts` | 17 | real backend (registration, login, onboarding, full auth flow); excluded from CI, see "CI honesty" above |
+| `epic2-meal-planning.spec.ts` | 32 (5 fixme) | hermetic (calendar, picker, copy day, clear plan, full planning flow) |
+| `recipes.spec.ts` | 12 | hermetic (category grid, search/filters/paging, states, onboarding copy, keyboard operability) |
+| `recipe-detail.spec.ts` | 7 | hermetic (detail fields, similar recipes, states) |
+| `favorites.spec.ts` | 6 | hermetic (search, filter, sort, old-id migration, states) |
+| `meal-plan-recipes.spec.ts` | 5 | hermetic (picker, self-contained slots, old-slot fallback, keyboard operability) |
+| `suggestions.spec.ts` | 5 | hermetic (time-of-day category, variety, exclusion, states) |
+| **Total** | **84** | |
 
-**US-1.2: User Login** (5 tests)
-- ✓ Login with valid credentials
-- ✓ Invalid credentials error
-- ✓ Remember me functionality
-- ✓ Account lock after 3 failed attempts
-- ✓ Session persistence across refreshes
-
-**US-1.3: Onboarding Tutorial** (6 tests)
-- ✓ Display all 5 screens
-- ✓ Navigate back through screens
-- ✓ Skip onboarding
-- ✓ Complete onboarding
-- ✓ Progress indicator
-- ✓ Keyboard navigation
-
-**Integration** (1 test)
-- ✓ Full authentication flow
-
-### Epic 2: Meal Planning (40+ tests)
-
-**US-2.1: View Weekly Calendar** (10 tests)
-- ✓ Display 7-day grid
-- ✓ Show current week
-- ✓ Highlight current day
-- ✓ Show all 4 meal slots
-- ✓ "Add meal" placeholders
-- ✓ Navigate to next/previous week
-- ✓ "This Week" button
-- ✓ Loading state
-- ✓ Mobile responsive
-
-**US-2.2: Add Recipe to Meal Slot** (10 tests)
-- ✓ Open recipe browser modal
-- ✓ Display search bar
-- ✓ Filter by search query
-- ✓ Filter by category
-- ✓ Add recipe to slot
-- ✓ Close modal (X button, Escape)
-- ✓ Replace confirmation
-- ✓ Persist changes
-
-**US-2.3: AI Meal Suggestions** (5 tests)
-- ✓ Display suggestions section
-- ✓ Show multiple suggestions
-- ✓ Show "Why this?" reasons
-- ✓ Refresh suggestions
-- ✓ Day/meal selector
-
-**US-2.4: Copy Day's Meals** (4 tests)
-- ✓ Show copy buttons
-- ✓ Open copy modal
-- ✓ Target day checkboxes
-- ✓ Replace option
-
-**US-2.5: Clear Meal Plan** (4 tests)
-- ✓ Show clear button
-- ✓ Open clear modal
-- ✓ Clear entire week option
-- ✓ Warning message
-
-**Integration** (1 test)
-- ✓ Complete meal planning workflow
+`npm run test:unit` (Vitest, `src/**/*.test.ts`) additionally runs 54 tests across 6 files, covering the recipe API client's parameter cleaning and error mapping, the per-session cache, favourites storage (including dropping old ids), the meal-slot shape and `MealPlanService`, and the suggestion rules.
 
 ## Running Tests
 

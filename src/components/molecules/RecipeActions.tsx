@@ -3,10 +3,10 @@ import { Heart, Calendar, Share2, Printer } from 'lucide-react';
 import { Button } from '../atoms/Button';
 import { useRecipes } from '../../contexts/useRecipes';
 import { useToast } from '../../contexts/useToast';
-import type { Recipe } from '../../types/recipe.types';
+import type { RecipeSummary } from '../../types/recipe.types';
 
 interface RecipeActionsProps {
-  recipe: Recipe;
+  recipe: RecipeSummary;
   onAddToPlan?: () => void;
   className?: string;
 }

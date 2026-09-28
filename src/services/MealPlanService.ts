@@ -1,6 +1,5 @@
 import { startOfWeek, format, parseISO } from 'date-fns';
-import { MealPlan, MealSlot, MealType, DayMeals } from '../types/recipe.types';
-import RecipeService from './RecipeService';
+import { MealPlan, MealSlot, MealType, DayMeals, RecipeSummary } from '../types/recipe.types';
 
 class MealPlanService {
   private readonly STORAGE_KEY_PREFIX = 'mealPlans';
@@ -63,20 +62,15 @@ class MealPlanService {
 
   /**
    * Add a recipe to a specific day and meal type.
-   * The week is derived from `dayDate` ("yyyy-MM-dd").
+   * The week is derived from `dayDate` ("yyyy-MM-dd"). The slot stores the
+   * summary the picker already has, so nothing is looked up.
    */
   addMeal(
     userId: string,
     dayDate: string,
     mealType: MealType,
-    recipeId: string
+    recipe: RecipeSummary
   ): MealPlan | null {
-    const recipe = RecipeService.getRecipeById(recipeId);
-    if (!recipe) {
-      console.error('Recipe not found:', recipeId);
-      return null;
-    }
-
     const mealPlan = this.getMealPlan(userId, this.parseDayKey(dayDate));
     if (!mealPlan) return null;
 
@@ -84,7 +78,7 @@ class MealPlanService {
       recipeId: recipe.id,
       recipeName: recipe.name,
       thumbnail: recipe.thumbnail,
-      prepTime: recipe.prepTime + recipe.cookTime, // total time, as shown on recipe cards
+      ...(recipe.category ? { category: recipe.category } : {}),
       addedAt: new Date().toISOString(),
     };
 

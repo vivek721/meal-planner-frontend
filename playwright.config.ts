@@ -2,6 +2,10 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
+  // epic1-authentication.spec.ts needs the real backend (see tests/README.md), which CI
+  // does not run. Excluding it here keeps the default `playwright test` / CI matrix jobs
+  // honest; `npm run test:epic1` still runs it explicitly against a live backend.
+  testIgnore: process.env.CI ? ['**/epic1-authentication.spec.ts'] : [],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
