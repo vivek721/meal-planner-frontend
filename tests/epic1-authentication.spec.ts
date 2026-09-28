@@ -84,10 +84,13 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
   });
 
   test.describe('US-1.2: User Login', () => {
-    const testEmail = 'login-test@example.com';
+    // Unique per test (not just per file) so re-running this file against the same
+    // (unreset) database never collides with a previous test's or run's registration.
+    let testEmail: string;
     const testPassword = 'Test123!@#';
 
     test.beforeEach(async () => {
+      testEmail = `login-test-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
       // Create a test user
       await authHelper.register(testEmail, testPassword, 'Login Test');
       await authHelper.skipOnboarding();
@@ -115,6 +118,9 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
 
     test('should remember user when "Remember me" is checked', async ({ page }) => {
       await authHelper.login(testEmail, testPassword, true);
+      // Against a real backend the login request is genuinely async; wait for it to
+      // resolve (redirect to dashboard) before checking storage.
+      await expect(page).toHaveURL(/\/dashboard/);
 
       // The JWT is kept in localStorage (key used by src/services/AuthService.ts)
       const authToken = await page.evaluate(() => localStorage.getItem('meal_planner_auth_token'));
@@ -132,8 +138,12 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
         await page.waitForTimeout(500);
       }
 
-      // Should show lock message
-      await expect(page.locator('text=Account locked').or(page.locator('text=too many attempts'))).toBeVisible();
+      // Should show lock message. The backend's actual copy (internal/services/auth_service.go,
+      // ErrAccountLocked/AccountLockedError) is "account is locked. Please try again in N
+      // minute(s)", not the "Account locked"/"too many attempts" copy this test used to assert.
+      // Two elements match /locked/i once locked (the message and the "temporarily locked"
+      // follow-up LoginForm renders alongside it), so assert on the first.
+      await expect(page.getByText(/locked/i).first()).toBeVisible();
     });
 
     test('should maintain session across page refreshes', async ({ page }) => {
@@ -167,7 +177,7 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
       await expect(page.locator('text=Discover recipes').or(page.locator('text=Discover Recipes'))).toBeVisible();
 
       await page.click('button:has-text("Next")');
-      await expect(page.locator('text=Generate shopping lists').or(page.locator('text=Shopping'))).toBeVisible();
+      await expect(page.getByRole('heading', { name: /Shopping Lists/i })).toBeVisible();
 
       await page.click('button:has-text("Next")');
       await expect(page.locator('text=Get Meal Suggestions')).toBeVisible();
@@ -214,7 +224,7 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
       await authHelper.register(testEmail, 'Test123!@#', 'Progress Test');
 
       // Progress indicator should be visible
-      await expect(page.locator('[class*="progress"]').or(page.locator('[role="progressbar"]'))).toBeVisible();
+      await expect(page.getByRole('progressbar')).toBeVisible();
     });
 
     test('should support keyboard navigation', async ({ page }) => {
@@ -252,6 +262,23 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
       // Step 6: Verify dashboard (no onboarding this time)
       await expect(page).toHaveURL(/\/dashboard/);
       await expect(page.locator('text=Welcome')).toBeVisible();
+    });
+
+    test('should show the register form immediately after logout (no bounce back to dashboard)', async ({ page }) => {
+      const testEmail = `logout-race-${Date.now()}@example.com`;
+      const testPassword = 'Test123!@#';
+
+      await authHelper.register(testEmail, testPassword, 'Logout Race Test');
+      await authHelper.completeOnboarding();
+      await expect(page).toHaveURL(/\/dashboard/);
+
+      // Dashboard.tsx's handleLogout must await logout() before navigating; otherwise the
+      // token is still in localStorage when PublicRoute checks it on /register and bounces
+      // straight back to /dashboard.
+      await authHelper.logout();
+      await page.goto('/register');
+      await expect(page).toHaveURL(/\/register/);
+      await expect(page.locator('input[name="email"]')).toBeVisible();
     });
   });
 });

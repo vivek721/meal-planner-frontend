@@ -26,13 +26,8 @@ Hermetic specs fake the session and answer every `/api/recipes*` request from `h
 
 ## CI honesty
 
-- **`epic1-authentication.spec.ts` needs a real backend and does not run in CI.** `playwright.config.ts` sets `testIgnore` to exclude it whenever `CI` is set, so every `--project` job in `.github/workflows/playwright.yml` (chromium/firefox/webkit/mobile) skips it automatically. The workflow's `test-epic1` job is disabled (`if: false`) for the same reason: it has no backend to run against. Run epic1 locally against a live backend with `npm run test:epic1`.
-- **Five `epic2-meal-planning.spec.ts` tests are `test.fixme()`d.** They fail against the current app for reasons unrelated to the TheMealDB integration (stale selectors, or assertions on copy that was never implemented), so the epic2 regression check treats them as a known baseline rather than new breakage:
-  - `should display 7-day calendar grid` — the `[class*="Day"]` selector matches 0 elements (`DayColumn`'s className never contains "Day").
-  - `should show all 4 meal slots for each day` — the `text=Breakfast`-style locator is a strict-mode violation once the week has planned meals (resolves to 18+ elements).
-  - `should open copy modal when clicking copy button` — the `text=Copy Day`/`text=Copy` locator is a strict-mode violation inside the open modal (resolves to 4 elements).
-  - `should open clear modal with options` — the `text=Clear Meal Plan`/`text=Clear` locator is a strict-mode violation inside the open modal (resolves to 9 elements).
-  - `should show warning message` — the clear-plan modal never renders "cannot be undone" or "warning" text.
+- **`epic1-authentication.spec.ts` needs a real backend, and runs in CI against one.** `playwright.config.ts` only excludes it (`testIgnore`) when `CI` is set *and* `E2E_BACKEND` is not; the `chromium`/`firefox`/`webkit`/mobile jobs in `.github/workflows/playwright.yml` run without `E2E_BACKEND`, so they skip it. The dedicated `test-epic1` job checks out `vivek721/meal-planner-backend`, brings it up with `docker compose`, waits for `/health`, then runs `tests/epic1-authentication.spec.ts` with `E2E_BACKEND=1` against it (frontend's `VITE_API_URL` already defaults to the backend's `:3001`), and tears the backend down afterwards. Run it the same way locally with `E2E_BACKEND=1 npm run test:epic1` against a running backend, or plain `npm run test:epic1` outside of CI.
+- All `epic2-meal-planning.spec.ts` tests pass (no `test.fixme()`s). The five that used to be skipped were rewritten to use roles, accessible names and `data-testid`s (`meal-plan-day` on `DayColumn`, `meal-slot` on `MealSlot`) instead of the stale class-name/text selectors that caused strict-mode violations or matched nothing.
 
 ## Test Coverage
 
@@ -40,14 +35,14 @@ Counts below are per spec file with `--project=chromium` (`npx playwright test -
 
 | Spec | Tests | Needs |
 | --- | --- | --- |
-| `epic1-authentication.spec.ts` | 17 | real backend (registration, login, onboarding, full auth flow); excluded from CI, see "CI honesty" above |
-| `epic2-meal-planning.spec.ts` | 32 (5 fixme) | hermetic (calendar, picker, copy day, clear plan, full planning flow) |
+| `epic1-authentication.spec.ts` | 18 | real backend (registration, login, onboarding, full auth flow); runs in CI's `test-epic1` job against a live backend, see "CI honesty" above |
+| `epic2-meal-planning.spec.ts` | 32 | hermetic (calendar, picker, copy day, clear plan, full planning flow) |
 | `recipes.spec.ts` | 12 | hermetic (category grid, search/filters/paging, states, onboarding copy, keyboard operability) |
 | `recipe-detail.spec.ts` | 7 | hermetic (detail fields, similar recipes, states) |
 | `favorites.spec.ts` | 6 | hermetic (search, filter, sort, old-id migration, states) |
 | `meal-plan-recipes.spec.ts` | 5 | hermetic (picker, self-contained slots, old-slot fallback, keyboard operability) |
 | `suggestions.spec.ts` | 5 | hermetic (time-of-day category, variety, exclusion, states) |
-| **Total** | **84** | |
+| **Total** | **85** | |
 
 `npm run test:unit` (Vitest, `src/**/*.test.ts`) additionally runs 54 tests across 6 files, covering the recipe API client's parameter cleaning and error mapping, the per-session cache, favourites storage (including dropping old ids), the meal-slot shape and `MealPlanService`, and the suggestion rules.
 
