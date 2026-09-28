@@ -1,4 +1,4 @@
-import type { MealCategory } from '../types/recipe.types';
+import type { MealCategory } from '../types/legacyRecipe.types';
 
 // Colour and icon per meal category, so every recipe gets a consistent,
 // offline placeholder instead of an unrelated random stock photo.

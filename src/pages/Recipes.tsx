@@ -9,7 +9,7 @@ import { Dropdown } from '../components/atoms/Dropdown';
 import { Checkbox } from '../components/atoms/Checkbox';
 import { RecipeCard } from '../components/molecules/RecipeCard';
 import RecipeService, { SortOption } from '../services/RecipeService';
-import type { Recipe, RecipeFilter, MealCategory } from '../types/recipe.types';
+import type { Recipe, RecipeFilter, MealCategory } from '../types/legacyRecipe.types';
 
 export const Recipes: React.FC = () => {
   const navigate = useNavigate();

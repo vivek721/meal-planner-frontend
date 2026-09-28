@@ -10,7 +10,7 @@ import { NutritionCard } from '../components/molecules/NutritionCard';
 import { RecipeActions } from '../components/molecules/RecipeActions';
 import { RecipeCard } from '../components/molecules/RecipeCard';
 import RecipeService from '../services/RecipeService';
-import type { Recipe } from '../types/recipe.types';
+import type { Recipe } from '../types/legacyRecipe.types';
 
 export const RecipeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();

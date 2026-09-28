@@ -20,7 +20,8 @@ import {
 import { DayColumn } from '../molecules/DayColumn';
 import { WeekNavigation } from '../molecules/WeekNavigation';
 import { RecipeCard } from '../molecules/RecipeCard';
-import type { MealPlan, MealType, Recipe } from '../../types/recipe.types';
+import type { MealPlan, MealType } from '../../types/recipe.types';
+import type { Recipe } from '../../types/legacyRecipe.types';
 
 interface MealSlotDropData {
   dayDate: string;

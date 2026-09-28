@@ -1,4 +1,4 @@
-import { Recipe, RecipeFilter, MealCategory } from '../types/recipe.types';
+import { Recipe, RecipeFilter, MealCategory } from '../types/legacyRecipe.types';
 import { mockRecipes } from '../data/mockRecipes';
 
 export type SortOption = 'popular' | 'quick' | 'newest' | 'rating' | 'name';

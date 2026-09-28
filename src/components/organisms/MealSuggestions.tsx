@@ -5,7 +5,8 @@ import { Dropdown } from '../atoms/Dropdown';
 import { Modal } from '../atoms/Modal';
 import { SuggestionCard } from '../molecules/SuggestionCard';
 import MockAIService from '../../services/MockAIService';
-import type { MealType, Recipe } from '../../types/recipe.types';
+import type { MealType } from '../../types/recipe.types';
+import type { Recipe } from '../../types/legacyRecipe.types';
 import { format } from 'date-fns';
 
 interface MealSuggestionsProps {

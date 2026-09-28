@@ -1,6 +1,6 @@
 import React from 'react';
 import { Flame, Beef, Wheat, Droplet } from 'lucide-react';
-import { NutritionInfo } from '../../types/recipe.types';
+import { NutritionInfo } from '../../types/legacyRecipe.types';
 
 interface NutritionCardProps {
   nutrition: NutritionInfo;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Clock, Plus, Info } from 'lucide-react';
-import type { Recipe } from '../../types/recipe.types';
+import type { Recipe } from '../../types/legacyRecipe.types';
 import { Badge } from '../atoms/Badge';
 
 interface SuggestionCardProps {

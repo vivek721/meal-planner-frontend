@@ -1,4 +1,4 @@
-import { Recipe } from '../types/recipe.types';
+import { Recipe } from '../types/legacyRecipe.types';
 import RecipeService from './RecipeService';
 import MealPlanService from './MealPlanService';
 

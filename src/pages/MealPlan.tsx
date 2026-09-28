@@ -10,7 +10,8 @@ import { CopyDayModal } from '../components/organisms/CopyDayModal';
 import { ClearPlanModal } from '../components/organisms/ClearPlanModal';
 import { Button } from '../components/atoms/Button';
 import MealPlanService from '../services/MealPlanService';
-import type { MealPlan as MealPlanData, MealType, Recipe } from '../types/recipe.types';
+import type { MealPlan as MealPlanData, MealType } from '../types/recipe.types';
+import type { Recipe } from '../types/legacyRecipe.types';
 
 const ALL_MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snacks'];
 

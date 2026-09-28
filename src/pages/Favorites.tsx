@@ -7,7 +7,7 @@ import { Input } from '../components/atoms/Input';
 import { Button } from '../components/atoms/Button';
 import { Dropdown } from '../components/atoms/Dropdown';
 import { RecipeCard } from '../components/molecules/RecipeCard';
-import type { Recipe, MealCategory } from '../types/recipe.types';
+import type { Recipe, MealCategory } from '../types/legacyRecipe.types';
 
 type SortOption = 'name' | 'recent' | 'time' | 'rating';
 

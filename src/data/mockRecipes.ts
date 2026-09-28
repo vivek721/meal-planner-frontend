@@ -1,4 +1,4 @@
-import { Recipe } from '../types/recipe.types';
+import { Recipe } from '../types/legacyRecipe.types';
 import { recipeThumbnail } from '../utils/recipeThumbnail';
 
 // Thumbnails are generated per category (see utils/recipeThumbnail)

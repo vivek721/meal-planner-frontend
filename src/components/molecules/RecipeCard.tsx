@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { Clock, Users, Heart } from 'lucide-react';
-import type { Recipe } from '../../types/recipe.types';
+import type { Recipe } from '../../types/legacyRecipe.types';
 import { Badge } from '../atoms/Badge';
 import { useRecipes } from '../../contexts/useRecipes';
 

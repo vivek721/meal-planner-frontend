@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { Recipe, RecipeFilter } from '../types/recipe.types';
+import type { Recipe, RecipeFilter } from '../types/legacyRecipe.types';
 import type { SortOption } from '../services/RecipeService';
 
 export interface RecipeContextType {

@@ -6,7 +6,7 @@ import { Button } from '../atoms/Button';
 import { Dropdown } from '../atoms/Dropdown';
 import { RecipeCard } from '../molecules/RecipeCard';
 import RecipeService from '../../services/RecipeService';
-import type { MealCategory, Recipe, RecipeFilter } from '../../types/recipe.types';
+import type { MealCategory, Recipe, RecipeFilter } from '../../types/legacyRecipe.types';
 
 interface RecipeBrowserModalProps {
   isOpen: boolean;

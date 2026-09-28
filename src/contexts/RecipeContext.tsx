@@ -1,5 +1,5 @@
 import React, { useState, useEffect, ReactNode, useCallback } from 'react';
-import { Recipe, RecipeFilter } from '../types/recipe.types';
+import { Recipe, RecipeFilter } from '../types/legacyRecipe.types';
 import RecipeService, { SortOption } from '../services/RecipeService';
 import { useAuth } from './useAuth';
 import { RecipeContext, RecipeContextType } from './useRecipes';

@@ -3,7 +3,7 @@ import { Heart, Calendar, Share2, Printer } from 'lucide-react';
 import { Button } from '../atoms/Button';
 import { useRecipes } from '../../contexts/useRecipes';
 import { useToast } from '../../contexts/useToast';
-import type { Recipe } from '../../types/recipe.types';
+import type { Recipe } from '../../types/legacyRecipe.types';
 
 interface RecipeActionsProps {
   recipe: Recipe;
