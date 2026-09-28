@@ -5,7 +5,7 @@ import { LogOut, User, Calendar, BookOpen, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const Dashboard: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -37,7 +37,12 @@ export const Dashboard: React.FC = () => {
                 <User size={20} />
                 <span className="font-medium">{user?.name || user?.email}</span>
               </div>
-              <Button variant="outline" onClick={handleLogout} className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                loading={loading}
+                className="flex items-center gap-2"
+              >
                 <LogOut size={18} />
                 Logout
               </Button>
