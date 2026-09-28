@@ -32,6 +32,7 @@ export const MealSlot: React.FC<MealSlotProps> = ({
   return (
     <div
       ref={setNodeRef}
+      data-testid="meal-slot"
       className={`
         relative rounded-lg border-2 transition-all duration-200 min-h-[80px]
         ${isEmpty ? 'border-dashed border-gray-300' : 'border-gray-200'}

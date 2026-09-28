@@ -33,13 +33,12 @@ test.describe('Epic 2: Meal Planning', () => {
   };
 
   test.describe('US-2.1: View Weekly Calendar', () => {
-    // Pre-existing failure: DayColumn's rendered className never contains "Day", so this selector always matches 0.
-    test.fixme('should display 7-day calendar grid', async ({ page }) => {
+    test('should display 7-day calendar grid', async ({ page }) => {
       await mealPlanHelper.navigateToMealPlan();
 
       // Should show 7 day columns
-      const dayColumns = await page.locator('[class*="Day"]').count();
-      expect(dayColumns).toBeGreaterThanOrEqual(7);
+      const dayColumns = await page.getByTestId('meal-plan-day').count();
+      expect(dayColumns).toBe(7);
     });
 
     test('should show current week by default', async ({ page }) => {
@@ -56,15 +55,12 @@ test.describe('Epic 2: Meal Planning', () => {
       await expect(page.locator('text=Today')).toBeVisible();
     });
 
-    // Pre-existing failure: the text=Breakfast/etc. locator is a strict-mode violation (resolves to 18+ elements on a populated week).
-    test.fixme('should show all 4 meal slots for each day', async ({ page }) => {
+    test('should show all 4 meal slots for each day', async ({ page }) => {
       await mealPlanHelper.navigateToMealPlan();
 
-      // Check for Breakfast, Lunch, Dinner, Snacks labels
-      await expect(page.locator('text=BREAKFAST').or(page.locator('text=Breakfast'))).toBeVisible();
-      await expect(page.locator('text=LUNCH').or(page.locator('text=Lunch'))).toBeVisible();
-      await expect(page.locator('text=DINNER').or(page.locator('text=Dinner'))).toBeVisible();
-      await expect(page.locator('text=SNACKS').or(page.locator('text=Snacks'))).toBeVisible();
+      // Each day column should have exactly 4 meal slots (breakfast, lunch, dinner, snacks)
+      const firstDay = page.getByTestId('meal-plan-day').first();
+      await expect(firstDay.getByTestId('meal-slot')).toHaveCount(4);
     });
 
     test('should show "Add meal" placeholder in empty slots', async ({ page }) => {
@@ -226,8 +222,7 @@ test.describe('Epic 2: Meal Planning', () => {
       expect(copyButtons).toBeGreaterThan(0);
     });
 
-    // Pre-existing failure: the text=Copy Day/Copy locator is a strict-mode violation (resolves to 4 elements in the open modal).
-    test.fixme('should open copy modal when clicking copy button', async ({ page }) => {
+    test('should open copy modal when clicking copy button', async ({ page }) => {
       await mealPlanHelper.navigateToMealPlan();
 
       // Click first copy button
@@ -238,7 +233,7 @@ test.describe('Epic 2: Meal Planning', () => {
       await copyButton.click();
 
       // Modal should open
-      await expect(page.locator('text=Copy Day').or(page.locator('text=Copy'))).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('dialog').getByRole('heading', { name: "Copy Day's Meals" })).toBeVisible({ timeout: 5000 });
     });
 
     test('should show target day checkboxes', async ({ page }) => {
@@ -277,17 +272,17 @@ test.describe('Epic 2: Meal Planning', () => {
       )).toBeVisible();
     });
 
-    // Pre-existing failure: the text=Clear Meal Plan/Clear locator is a strict-mode violation (resolves to 9 elements in the open modal).
-    test.fixme('should open clear modal with options', async ({ page }) => {
+    test('should open clear modal with options', async ({ page }) => {
       await mealPlanHelper.navigateToMealPlan();
 
       // Click Clear Plan
       await page.locator('button:has-text("Clear Plan")').first().click();
 
-      // Modal should open
-      await expect(page.locator('text=Clear Meal Plan').or(
-        page.locator('text=Clear')
-      )).toBeVisible({ timeout: 5000 });
+      // Modal should open, with the two clear-mode options
+      const dialog = page.getByRole('dialog');
+      await expect(dialog.getByRole('heading', { name: 'Clear Meal Plan' })).toBeVisible({ timeout: 5000 });
+      await expect(dialog.getByText('Clear entire week')).toBeVisible();
+      await expect(dialog.getByText('Clear specific days')).toBeVisible();
     });
 
     test('should show clear entire week option', async ({ page }) => {
@@ -301,16 +296,16 @@ test.describe('Epic 2: Meal Planning', () => {
       )).toBeVisible();
     });
 
-    // Pre-existing failure: the clear-plan modal never renders "cannot be undone" or "warning" text.
-    test.fixme('should show warning message', async ({ page }) => {
-      await mealPlanHelper.navigateToMealPlan();
+    test('should show warning message', async ({ page }) => {
+      // The "cannot be undone" warning only renders once there is at least one meal to
+      // clear, so add one first.
+      await openPicker(page);
+      await addFirstRecipe(page);
 
       await page.locator('button:has-text("Clear Plan")').first().click();
 
       // Should show warning
-      await expect(page.locator('text=cannot be undone').or(
-        page.locator('text=warning')
-      )).toBeVisible();
+      await expect(page.getByRole('dialog').getByText('This action cannot be undone')).toBeVisible();
     });
   });
 
