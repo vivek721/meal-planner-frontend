@@ -10,7 +10,6 @@ import { Login } from './pages/Login';
 import { Onboarding } from './pages/Onboarding';
 import { Dashboard } from './pages/Dashboard';
 import { MealPlan } from './pages/MealPlan';
-import { RecipeTest } from './pages/RecipeTest';
 import { Recipes } from './pages/Recipes';
 import { RecipeDetail } from './pages/RecipeDetail';
 import { Favorites } from './pages/Favorites';
@@ -142,15 +141,6 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <Favorites />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/recipe-test"
-        element={
-          <ProtectedRoute>
-            <RecipeTest />
           </ProtectedRoute>
         }
       />

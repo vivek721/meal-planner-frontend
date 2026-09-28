@@ -266,7 +266,7 @@ test.describe('Epic 2: Meal Planning', () => {
     });
   });
 
-  test.describe('US-2.3: AI Meal Suggestions', () => {
+  test.describe('US-2.3: Meal Suggestions', () => {
     test('should display AI suggestions section', async ({ page }) => {
       await mealPlanHelper.navigateToMealPlan();
 
@@ -274,7 +274,7 @@ test.describe('Epic 2: Meal Planning', () => {
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
 
       // Should show AI Suggestions heading
-      await expect(page.locator('text=AI Suggestions').or(page.locator('text=Suggestions'))).toBeVisible();
+      await expect(page.locator('text=Suggested for You')).toBeVisible();
     });
 
     test('should show multiple recipe suggestions', async ({ page }) => {

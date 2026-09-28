@@ -14,6 +14,7 @@ A React + TypeScript single-page app for planning a week of meals. You can sign 
 - **Onboarding tutorial:** five slides with a progress indicator. You can move through them with Next/Back/Skip or with the keyboard (arrow keys, Enter, Escape). Finishing is saved through `POST /api/auth/onboarding/complete`, and the dashboard has a button to replay it.
 
 ### Recipes (client-side, 70 bundled sample recipes)
+- Recipes have no photos; each shows a generated placeholder coloured by meal category (`src/utils/recipeThumbnail.ts`).
 - **Browse (`/recipes`):** free-text search over name, description, cuisine, ingredients and dietary tags. You can filter by category, cuisine, dietary tag and maximum total time, and sort by popularity, quickest, newest, rating or name.
 - **Recipe detail (`/recipes/:id`):** ingredients, step-by-step instructions and nutrition. A serving adjuster rescales ingredient amounts (fractions are handled, e.g. `1/2` becomes `3/4`) along with the nutrition figures. The page also shows similar recipes (scored by cuisine, category and dietary tags) and has buttons for share (Web Share API, falling back to the clipboard), print and favourite.
 - **Favourites (`/favorites`):** saved per user in `localStorage`, with search, a category filter and sorting.
@@ -55,7 +56,7 @@ src/
 ├── contexts/           # Auth, Recipe and Toast providers (*Context.tsx) and their hooks (use*.ts)
 ├── data/               # mockRecipes.ts (sample recipe catalogue)
 ├── pages/              # Login, Register, Onboarding, Dashboard, MealPlan, Recipes,
-│                       # RecipeDetail, Favorites, RecipeTest (dev-only harness)
+│                       # RecipeDetail, Favorites
 ├── services/
 │   ├── api/            # apiClient.ts (Axios instance), authApi.ts (auth endpoints)
 │   ├── AuthService.ts  # token/session handling on top of authApi
@@ -127,7 +128,7 @@ This is an active work in progress. Known gaps:
 - **Drag and drop is only half built.** The calendar's meal slots are `@dnd-kit` drop targets, but nothing on the page is draggable yet, so meals are added through the recipe picker or the suggestions panel.
 - The user profile from the API has no dietary preferences, so the suggestions panel does not personalise by diet yet.
 - "Remember me" on the login form is not wired up, "Forgot password?" is a placeholder, and the meal-plan **Export** button does nothing.
-- The dashboard does not link to `/recipes` or `/favorites` yet, so those pages are reached by URL.
+- Nothing links to `/favorites` yet, so that page is reached by URL.
 
 ## Roadmap (not yet built)
 

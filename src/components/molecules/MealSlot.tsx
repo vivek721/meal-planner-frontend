@@ -2,6 +2,7 @@ import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { Clock, Plus, X } from 'lucide-react';
 import type { MealSlot as MealSlotType } from '../../types/recipe.types';
+import RecipeService from '../../services/RecipeService';
 
 interface MealSlotProps {
   dayDate: string;
@@ -26,6 +27,9 @@ export const MealSlot: React.FC<MealSlotProps> = ({
   });
 
   const isEmpty = !meal;
+  // Prefer live recipe data so saved slots pick up thumbnail/time fixes
+  const recipe = meal ? RecipeService.getRecipeById(meal.recipeId) : null;
+  const totalTime = recipe ? recipe.prepTime + recipe.cookTime : meal?.prepTime;
 
   return (
     <div
@@ -61,7 +65,7 @@ export const MealSlot: React.FC<MealSlotProps> = ({
           <div className="flex gap-3">
             {/* Thumbnail */}
             <img
-              src={meal.thumbnail}
+              src={recipe?.thumbnail ?? meal.thumbnail}
               alt={meal.recipeName}
               className="w-16 h-16 rounded-md object-cover flex-shrink-0"
             />
@@ -73,7 +77,7 @@ export const MealSlot: React.FC<MealSlotProps> = ({
               </h4>
               <div className="flex items-center gap-1 text-xs text-gray-500">
                 <Clock className="w-3 h-3" />
-                <span>{meal.prepTime} min</span>
+                <span>{totalTime} min</span>
               </div>
             </div>
           </div>
