@@ -10,7 +10,7 @@ import { NutritionCard } from '../components/molecules/NutritionCard';
 import { RecipeActions } from '../components/molecules/RecipeActions';
 import { RecipeCard } from '../components/molecules/RecipeCard';
 import { useAsync } from '../hooks/useAsync';
-import recipesApi, { MAX_PAGE_SIZE, RECIPE_NOT_AVAILABLE_MESSAGE } from '../services/api/recipesApi';
+import recipesApi, { RECIPE_NOT_AVAILABLE_MESSAGE } from '../services/api/recipesApi';
 import { getRecipe } from '../services/recipes/recipeData';
 import { isRecipeId, pickSimilar } from '../services/recipes/recipeUtils';
 
@@ -52,7 +52,7 @@ export const RecipeDetail: React.FC = () => {
   // Similar recipes: up to 4 others from the same category
   const category = recipe?.category ?? '';
   const loadSimilar = useMemo(
-    () => (category ? () => recipesApi.searchRecipes({ category, limit: MAX_PAGE_SIZE }) : null),
+    () => (category ? () => recipesApi.searchRecipes({ category, limit: 5 }) : null),
     [category],
   );
   const similarPage = useAsync(loadSimilar);

@@ -50,23 +50,29 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         ref={isDraggable ? setNodeRef : undefined}
         {...(isDraggable ? listeners : {})}
         {...(isDraggable ? attributes : {})}
-        onClick={handleClick}
         className={`
           flex gap-3 p-3 bg-white rounded-lg border border-gray-200
-          hover:shadow-md transition-all cursor-pointer relative
+          hover:shadow-md transition-all relative
           ${isDragging ? 'opacity-50' : ''}
           ${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''}
         `}
       >
         <img src={image} alt={recipe.name} loading="lazy" className="w-16 h-16 rounded-md object-cover flex-shrink-0" />
         <div className="flex-1 min-w-0 pr-6">
-          <h4 className="font-medium text-sm text-gray-900 truncate mb-1">{recipe.name}</h4>
+          <button
+            type="button"
+            data-testid="recipe-card-name"
+            onClick={handleClick}
+            className="font-medium text-sm text-gray-900 truncate mb-1 text-left w-full after:absolute after:inset-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-sm"
+          >
+            {recipe.name}
+          </button>
           {meta && <p className="text-xs text-gray-500 truncate">{meta}</p>}
         </div>
         {showFavorite && (
           <button
             onClick={handleFavoriteClick}
-            className="absolute top-2 right-2 p-1 rounded-full bg-white/80 hover:bg-white transition-colors"
+            className="absolute top-2 right-2 z-10 p-1 rounded-full bg-white/80 hover:bg-white transition-colors"
             aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
           >
             <Heart
@@ -86,10 +92,9 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
       ref={isDraggable ? setNodeRef : undefined}
       {...(isDraggable ? listeners : {})}
       {...(isDraggable ? attributes : {})}
-      onClick={handleClick}
       className={`
         bg-white rounded-lg border border-gray-200 overflow-hidden
-        hover:shadow-lg transition-all cursor-pointer relative group
+        hover:shadow-lg transition-all relative group
         ${isDragging ? 'opacity-50 shadow-2xl' : ''}
         ${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''}
       `}
@@ -112,7 +117,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         {showFavorite && (
           <button
             onClick={handleFavoriteClick}
-            className="absolute top-2 right-2 p-2 rounded-full bg-white/90 hover:bg-white transition-all shadow-md hover:scale-110"
+            className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/90 hover:bg-white transition-all shadow-md hover:scale-110"
             aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
           >
             <Heart
@@ -126,7 +131,14 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="font-semibold text-lg text-gray-900 mb-1 line-clamp-2">{recipe.name}</h3>
+        <button
+          type="button"
+          data-testid="recipe-card-name"
+          onClick={handleClick}
+          className="font-semibold text-lg text-gray-900 mb-1 line-clamp-2 text-left w-full after:absolute after:inset-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-sm"
+        >
+          {recipe.name}
+        </button>
         {recipe.cuisine && <p className="text-sm text-gray-500">{recipe.cuisine}</p>}
       </div>
     </div>

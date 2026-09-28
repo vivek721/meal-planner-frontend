@@ -1,8 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { signInWithMockedSession } from './helpers/session.helper';
-import { mockRecipesApi, outage, overrideRecipesApi, type RecipesApiMock } from './helpers/recipes.fixtures';
+import {
+  mockRecipesApi,
+  outage,
+  overrideRecipesApi,
+  RECIPES_UNAVAILABLE_MESSAGE,
+  type RecipesApiMock,
+} from './helpers/recipes.fixtures';
 
-const UNAVAILABLE = 'Recipes are temporarily unavailable, please try again shortly';
 const NOT_AVAILABLE = 'This recipe is no longer available';
 
 test.describe('Recipe detail (TheMealDB via /api/recipes/:id)', () => {
@@ -45,11 +50,16 @@ test.describe('Recipe detail (TheMealDB via /api/recipes/:id)', () => {
   test('shows up to 4 similar recipes from the same category, excluding this one', async ({ page }) => {
     await page.goto('/recipes/60001');
     const similar = page.getByTestId('similar-recipes').getByTestId('recipe-card');
-    await expect(similar.locator('h4')).toHaveText(['Misc Dish 2', 'Misc Dish 3', 'Misc Dish 4', 'Misc Dish 5']);
-    expect(api.requests).toContain('/api/recipes?category=Miscellaneous&limit=50');
+    await expect(similar.getByTestId('recipe-card-name')).toHaveText([
+      'Misc Dish 2',
+      'Misc Dish 3',
+      'Misc Dish 4',
+      'Misc Dish 5',
+    ]);
+    expect(api.requests).toContain('/api/recipes?category=Miscellaneous&limit=5');
 
     await page.goto('/recipes/52772');
-    await expect(page.getByTestId('similar-recipes').getByTestId('recipe-card').locator('h4')).toHaveText([
+    await expect(page.getByTestId('similar-recipes').getByTestId('recipe-card').getByTestId('recipe-card-name')).toHaveText([
       'Chicken Handi',
       'Brown Stew Chicken',
     ]);
@@ -70,7 +80,7 @@ test.describe('Recipe detail (TheMealDB via /api/recipes/:id)', () => {
     const down = outage();
     await overrideRecipesApi(page, (url) => url.pathname === '/api/recipes/52772', down.handler);
     await page.goto('/recipes/52772');
-    await expect(page.getByTestId('error-panel')).toContainText(UNAVAILABLE);
+    await expect(page.getByTestId('error-panel')).toContainText(RECIPES_UNAVAILABLE_MESSAGE);
     down.end();
     await page.getByRole('button', { name: 'Retry' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Teriyaki Chicken Casserole' })).toBeVisible();

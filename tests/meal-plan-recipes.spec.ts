@@ -1,12 +1,17 @@
 import { test, expect, type Page } from '@playwright/test';
 import { signInWithMockedSession, TEST_USER } from './helpers/session.helper';
-import { mockRecipesApi, outage, overrideRecipesApi, type RecipesApiMock } from './helpers/recipes.fixtures';
+import {
+  mockRecipesApi,
+  outage,
+  overrideRecipesApi,
+  RECIPES_UNAVAILABLE_MESSAGE,
+  type RecipesApiMock,
+} from './helpers/recipes.fixtures';
 
 // Wednesday 30 Sept 2026 at noon: the week starts on Sunday 27 Sept, and
 // suggestions (not Breakfast after 11:00) never touch the picker's category
 const NOW = new Date('2026-09-30T12:00:00');
 const WEEK_KEY = `mealPlans_${TEST_USER.id}_2026-09-27`;
-const UNAVAILABLE = 'Recipes are temporarily unavailable, please try again shortly';
 
 // A slot saved while the app used the bundled mock recipes
 const LEGACY_PLAN = {
@@ -73,6 +78,27 @@ test.describe('Meal plan recipes (picker and slots)', () => {
     });
   });
 
+  test('keyboard-selects a recipe in the picker: Tab to the name, Enter shows the footer', async ({ page }) => {
+    await signInWithMockedSession(page);
+    await page.goto('/meal-plan');
+    await openPicker(page);
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByTestId('recipe-card')).toHaveCount(5);
+
+    // Before a selection, the footer "Add to <meal type>" button is not rendered at all
+    // (every recipe card also has an "Add to favorites" button, so exclude that).
+    await expect(dialog.getByRole('button', { name: /^Add to (?!favorites)/i })).toHaveCount(0);
+
+    const firstName = dialog.getByTestId('recipe-card').first().getByTestId('recipe-card-name');
+    await firstName.focus();
+    await expect(firstName).toBeFocused();
+    await page.keyboard.press('Enter');
+
+    const addButton = dialog.getByRole('button', { name: 'Add to breakfast' });
+    await expect(addButton).toBeVisible();
+    await expect(addButton).toBeEnabled();
+  });
+
   test('filters the picker by category and cuisine', async ({ page }) => {
     await signInWithMockedSession(page);
     await page.goto('/meal-plan');
@@ -112,7 +138,7 @@ test.describe('Meal plan recipes (picker and slots)', () => {
     await page.goto('/meal-plan');
     await openPicker(page);
     const dialog = page.getByRole('dialog');
-    await expect(dialog.getByTestId('error-panel')).toContainText(UNAVAILABLE);
+    await expect(dialog.getByTestId('error-panel')).toContainText(RECIPES_UNAVAILABLE_MESSAGE);
     down.end();
     await dialog.getByRole('button', { name: 'Retry' }).click();
     await expect(dialog.getByTestId('recipe-card')).toHaveCount(5);

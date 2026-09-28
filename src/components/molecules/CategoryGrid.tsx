@@ -20,7 +20,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({ categories, onSelect
         <div className="h-32 bg-gray-50 flex items-center justify-center overflow-hidden">
           <img
             src={category.thumbnail}
-            alt={category.name}
+            alt=""
             loading="lazy"
             className="h-full object-contain group-hover:scale-105 transition-transform duration-300"
           />

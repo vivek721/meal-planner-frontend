@@ -6,7 +6,7 @@ import {
   mockRecipesApi,
   outage,
   overrideRecipesApi,
-  RECIPES_UNAVAILABLE_ERROR,
+  RECIPES_UNAVAILABLE_MESSAGE,
   type RecipesApiMock,
 } from './helpers/recipes.fixtures';
 
@@ -21,10 +21,9 @@ test.describe('Recipes page (TheMealDB via /api/recipes)', () => {
   test('lands on the category grid with photos and runs no search', async ({ page }) => {
     await page.goto('/recipes');
     await expect(page.getByTestId('category-tile')).toHaveCount(CATEGORIES.length);
-    await expect(page.getByRole('img', { name: 'Chicken', exact: true })).toHaveAttribute(
-      'src',
-      'https://www.themealdb.com/images/category/chicken.png',
-    );
+    await expect(
+      page.getByTestId('category-tile').filter({ hasText: 'Chicken' }).locator('img'),
+    ).toHaveAttribute('src', 'https://www.themealdb.com/images/category/chicken.png');
     expect(api.requests.some((r) => r.startsWith('/api/recipes?'))).toBe(false);
   });
 
@@ -38,6 +37,19 @@ test.describe('Recipes page (TheMealDB via /api/recipes)', () => {
     for (const img of await cards.locator('img').all()) {
       await expect(img).toHaveAttribute('src', /\/preview$/);
     }
+  });
+
+  test('recipe cards are keyboard-operable: Tab to the name, Enter opens the detail page', async ({ page }) => {
+    await page.goto('/recipes?category=Chicken');
+    const firstName = page.getByTestId('recipe-card').first().getByTestId('recipe-card-name');
+    // A real <button> is a normal tab stop, so focusing it exercises the same
+    // path Tab would take; we then confirm Enter (native button activation)
+    // opens the recipe rather than relying on a click.
+    await firstName.focus();
+    await expect(firstName).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/\/recipes\/\d+$/);
+    await expect(page.getByTestId('recipe-detail')).toBeVisible();
   });
 
   test('searches by name and filters by cuisine and main ingredient', async ({ page }) => {
@@ -89,7 +101,7 @@ test.describe('Recipes page (TheMealDB via /api/recipes)', () => {
     const down = outage();
     await overrideRecipesApi(page, (url) => url.pathname === '/api/recipes', down.handler);
     await page.goto('/recipes?category=Chicken');
-    await expect(page.getByTestId('error-panel')).toContainText(new RegExp(RECIPES_UNAVAILABLE_ERROR, 'i'));
+    await expect(page.getByTestId('error-panel')).toContainText(RECIPES_UNAVAILABLE_MESSAGE);
     down.end();
     await page.getByRole('button', { name: 'Retry' }).click();
     await expect(page.getByTestId('recipe-card')).toHaveCount(3);
