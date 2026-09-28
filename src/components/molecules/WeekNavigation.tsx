@@ -50,10 +50,10 @@ export const WeekNavigation: React.FC<WeekNavigationProps> = ({
             variant="outline"
             size="sm"
             onClick={onThisWeek}
-            className="hidden sm:flex"
+            aria-label="This week"
           >
-            <Calendar className="w-4 h-4 mr-2" />
-            This Week
+            <Calendar className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">This Week</span>
           </Button>
         )}
 

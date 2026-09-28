@@ -102,7 +102,7 @@ export class MealPlanHelper {
   }
 
   async navigateToThisWeek() {
-    await this.page.click('button:has-text("This Week")');
+    await this.page.getByRole('button', { name: 'This week' }).click();
     await this.page.waitForTimeout(300);
   }
 
