@@ -8,8 +8,11 @@ export const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    // AuthService.logout() clears the stored token in a `finally`; navigating before it
+    // resolves can leave the token in localStorage long enough for PublicRoute to see a
+    // still-authenticated user and bounce a subsequent /register visit back to /dashboard.
+    await logout();
     navigate('/login');
   };
 
