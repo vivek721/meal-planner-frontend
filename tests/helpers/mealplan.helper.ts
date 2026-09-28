@@ -21,7 +21,7 @@ export class MealPlanHelper {
     await this.page.waitForSelector('text=Add Recipe', { timeout: 5000 });
 
     // Select a recipe (click on the first recipe card)
-    const recipeCards = await this.page.locator('[class*="RecipeCard"]').all();
+    const recipeCards = await this.page.getByTestId('recipe-card').all();
     await recipeCards[recipeIndex].click();
 
     // Click "Add to" button

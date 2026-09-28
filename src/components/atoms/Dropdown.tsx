@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react';
 
 interface DropdownProps {
   id?: string;
+  ariaLabel?: string;
   label?: string;
   value: string;
   onChange: (value: string) => void;
@@ -15,6 +16,7 @@ interface DropdownProps {
 
 export const Dropdown: React.FC<DropdownProps> = ({
   id,
+  ariaLabel,
   label,
   value,
   onChange,
@@ -37,6 +39,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
       <div className="relative">
         <select
           id={id}
+          aria-label={ariaLabel}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
