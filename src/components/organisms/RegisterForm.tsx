@@ -8,14 +8,19 @@ import { useAuth } from '../../contexts/useAuth';
 import { Input } from '../atoms/Input';
 import { Button } from '../atoms/Button';
 import { PasswordStrengthIndicator } from '../molecules/PasswordStrengthIndicator';
+import { mapAuthErrorMessage } from '../../utils/passwordUtils';
 
+// Mirrors the backend's ValidatePassword (internal/utils/validator.go): length, upper,
+// lower, number, special character.
 const registerSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/\d/, 'Password must contain at least one number'),
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/\d/, 'Password must contain at least one number')
+    .regex(/[^A-Za-z0-9\s]/, 'Password must contain at least one special character'),
   confirmPassword: z.string(),
   name: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -53,7 +58,7 @@ export const RegisterForm: React.FC = () => {
         navigate('/onboarding');
       }, 1500);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Registration failed');
+      setErrorMessage(error instanceof Error ? mapAuthErrorMessage(error.message) : 'Registration failed');
     }
   };
 
