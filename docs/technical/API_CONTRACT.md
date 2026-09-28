@@ -3,6 +3,13 @@
 
 ---
 
+> **Superseded for recipes.** The Recipe Service section below predates the TheMealDB
+> integration and no longer reflects `/api/recipes*`. The real recipe API is documented
+> in the backend repo's `docs/superpowers/specs/2026-09-28-themealdb-integration-design.md`
+> and README.
+
+---
+
 **Version:** 1.0
 **Last Updated:** 2025-10-12
 **Purpose:** Define all service interfaces for easy backend integration

@@ -11,11 +11,22 @@ const PIXEL_PNG = Buffer.from(
 );
 
 /**
- * The backend's raw 503 body text (see global-constraints.md); `toRecipeApiError`
- * capitalizes it into `RECIPES_UNAVAILABLE_MESSAGE`. Defined once here so specs
- * import it from `outage()`'s callers instead of repeating the literal string.
+ * The backend's raw 503 body text. `toRecipeApiError` ignores this body and
+ * always maps a 503 to the fixed `RECIPES_UNAVAILABLE_MESSAGE` constant (see
+ * below), so specs assert against that constant rather than this string; it
+ * exists only to make `outage()`'s fixture response shaped like the real
+ * backend's.
  */
 export const RECIPES_UNAVAILABLE_ERROR = 'recipes are temporarily unavailable, please try again shortly';
+
+/**
+ * Mirrors `RECIPES_UNAVAILABLE_MESSAGE` from `src/services/api/recipesApi.ts`.
+ * Not re-exported from there: that module imports `apiClient.ts`, which reads
+ * `import.meta.env.VITE_API_URL` — Vite-only syntax that Playwright's test
+ * loader (no Vite involved) cannot evaluate, so pulling it into a spec file
+ * fails at collection time with "Cannot read properties of undefined".
+ */
+export const RECIPES_UNAVAILABLE_MESSAGE = 'Recipes are temporarily unavailable, please try again shortly';
 
 function recipe(id: string, name: string, category: string, cuisine: string, extra: Partial<Recipe> = {}): Recipe {
   return {

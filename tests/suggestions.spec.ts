@@ -1,11 +1,16 @@
 import { test, expect, type Page } from '@playwright/test';
 import { signInWithMockedSession, TEST_USER } from './helpers/session.helper';
-import { mockRecipesApi, outage, overrideRecipesApi, type RecipesApiMock } from './helpers/recipes.fixtures';
+import {
+  mockRecipesApi,
+  outage,
+  overrideRecipesApi,
+  RECIPES_UNAVAILABLE_MESSAGE,
+  type RecipesApiMock,
+} from './helpers/recipes.fixtures';
 
 const MORNING = new Date('2026-09-30T08:00:00');
 const AFTERNOON = new Date('2026-09-30T14:00:00');
 const WEEK_KEY = `mealPlans_${TEST_USER.id}_2026-09-27`;
-const UNAVAILABLE = 'Recipes are temporarily unavailable, please try again shortly';
 const MAIN = ['Chicken', 'Beef', 'Pasta', 'Seafood', 'Vegetarian', 'Lamb', 'Pork'];
 
 type Meal = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
@@ -95,7 +100,7 @@ test.describe('Meal suggestions (SuggestionService)', () => {
     );
     await signInWithMockedSession(page);
     await page.goto('/meal-plan');
-    await expect(panel(page).getByTestId('error-panel')).toContainText(UNAVAILABLE);
+    await expect(panel(page).getByTestId('error-panel')).toContainText(RECIPES_UNAVAILABLE_MESSAGE);
     down.end();
     await panel(page).getByRole('button', { name: 'Retry' }).click();
     await expect(panel(page).getByTestId('suggestion-card')).toHaveCount(4);

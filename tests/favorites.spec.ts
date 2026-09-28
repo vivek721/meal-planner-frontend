@@ -1,9 +1,14 @@
 import { test, expect, type Page } from '@playwright/test';
 import { signInWithMockedSession, TEST_USER } from './helpers/session.helper';
-import { mockRecipesApi, outage, overrideRecipesApi, type RecipesApiMock } from './helpers/recipes.fixtures';
+import {
+  mockRecipesApi,
+  outage,
+  overrideRecipesApi,
+  RECIPES_UNAVAILABLE_MESSAGE,
+  type RecipesApiMock,
+} from './helpers/recipes.fixtures';
 
 const FAVORITES_KEY = `user_favorites_${TEST_USER.id}`;
-const UNAVAILABLE = 'Recipes are temporarily unavailable, please try again shortly';
 
 const favoritesStorage = (value: unknown): Record<string, string> => ({
   [FAVORITES_KEY]: typeof value === 'string' ? value : JSON.stringify(value),
@@ -72,7 +77,7 @@ test.describe('Favourites (TheMealDB via /api/recipes)', () => {
     await overrideRecipesApi(page, (url) => url.pathname === '/api/recipes/52772', down.handler);
     await signInWithMockedSession(page, favoritesStorage(['52772']));
     await page.goto('/favorites');
-    await expect(page.getByTestId('error-panel')).toContainText(UNAVAILABLE);
+    await expect(page.getByTestId('error-panel')).toContainText(RECIPES_UNAVAILABLE_MESSAGE);
     down.end();
     await page.getByRole('button', { name: 'Retry' }).click();
     await expect(page.getByTestId('recipe-card')).toHaveCount(1);
