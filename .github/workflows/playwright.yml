@@ -162,7 +162,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Epic 2 tests
-        run: npm run test:epic2
+        run: npm run test:epic2 -- --project=chromium
         env:
           CI: true
 
