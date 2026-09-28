@@ -44,7 +44,7 @@ Counts below are per spec file with `--project=chromium` (`npx playwright test -
 | `suggestions.spec.ts` | 5 | hermetic (time-of-day category, variety, exclusion, states) |
 | **Total** | **85** | |
 
-`npm run test:unit` (Vitest, `src/**/*.test.ts`) additionally runs 54 tests across 6 files, covering the recipe API client's parameter cleaning and error mapping, the per-session cache, favourites storage (including dropping old ids), the meal-slot shape and `MealPlanService`, and the suggestion rules.
+`npm run test:unit` (Vitest, `src/**/*.test.ts`) additionally runs 72 tests across 7 files, covering the recipe API client's parameter cleaning and error mapping, the per-session cache, favourites storage (including dropping old ids), the meal-slot shape and `MealPlanService`, the suggestion rules, and the password rule/strength/error-mapping utilities in `src/utils/passwordUtils.ts` (the same rule RegisterForm's Zod schema uses directly, including parity with the backend's Unicode letter/number/punctuation/symbol categories).
 
 ## Running Tests
 
