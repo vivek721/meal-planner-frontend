@@ -134,7 +134,14 @@ export const OnboardingModal: React.FC = () => {
 
         {/* Progress Bar */}
         <div className="px-8 mb-6">
-          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="w-full h-2 bg-gray-200 rounded-full overflow-hidden"
+            role="progressbar"
+            aria-valuenow={currentSlide + 1}
+            aria-valuemin={1}
+            aria-valuemax={slides.length}
+            aria-label="Onboarding progress"
+          >
             <div
               className="h-full bg-primary-500 transition-all duration-300"
               style={{ width: `${progress}%` }}
