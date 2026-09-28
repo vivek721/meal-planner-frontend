@@ -1,20 +1,18 @@
 import { test, expect } from '@playwright/test';
-import { AuthHelper } from './helpers/auth.helper';
 import { MealPlanHelper } from './helpers/mealplan.helper';
+import { mockRecipesApi } from './helpers/recipes.fixtures';
+import { signInWithMockedSession } from './helpers/session.helper';
 
 test.describe('Epic 2: Meal Planning', () => {
-  let authHelper: AuthHelper;
   let mealPlanHelper: MealPlanHelper;
 
   test.beforeEach(async ({ page }) => {
-    authHelper = new AuthHelper(page);
     mealPlanHelper = new MealPlanHelper(page);
 
-    // Setup: Create user and login
-    await authHelper.clearAuthStorage();
-    const testEmail = `mealplan-${Date.now()}@example.com`;
-    await authHelper.register(testEmail, 'Test123!@#', 'Meal Plan Test');
-    await authHelper.skipOnboarding();
+    // Hermetic: a mocked session and fixture recipes, so neither the backend
+    // nor TheMealDB is needed (see helpers/session.helper.ts, recipes.fixtures.ts)
+    await mockRecipesApi(page);
+    await signInWithMockedSession(page);
   });
 
   test.describe('US-2.1: View Weekly Calendar', () => {
