@@ -178,64 +178,37 @@ test.describe('Epic 2: Meal Planning', () => {
   });
 
   test.describe('US-2.3: Meal Suggestions', () => {
+    // Morning, so suggestions are the (four or more) Breakfast fixtures
+    test.beforeEach(async ({ page }) => {
+      await page.clock.setFixedTime(new Date('2026-09-30T08:00:00'));
+    });
+
     test('should display AI suggestions section', async ({ page }) => {
       await mealPlanHelper.navigateToMealPlan();
-
-      // Scroll down to suggestions
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-
-      // Should show AI Suggestions heading
       await expect(page.locator('text=Suggested for You')).toBeVisible();
     });
 
     test('should show multiple recipe suggestions', async ({ page }) => {
       await mealPlanHelper.navigateToMealPlan();
-
-      // Scroll to suggestions
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-
-      // Should show recipe cards
-      await expect(page.locator('[class*="Suggestion"]').or(page.locator('button:has-text("Add to Plan")'))).toBeVisible();
+      await expect(page.getByTestId('suggestion-card')).toHaveCount(4);
     });
 
     test('should show "Why this?" reason for suggestions', async ({ page }) => {
       await mealPlanHelper.navigateToMealPlan();
-
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-
-      // Should show reason text or tooltip
-      await expect(page.locator('text=Based on').or(page.locator('[title*="Based on"]'))).toBeVisible({ timeout: 10000 });
+      await expect(page.getByTestId('suggestion-card').first()).toContainText('Breakfast idea', { timeout: 10000 });
     });
 
     test('should refresh suggestions', async ({ page }) => {
       await mealPlanHelper.navigateToMealPlan();
-
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-
-      // Click refresh button
-      const refreshButton = page.locator('button:has(svg)').filter({ hasText: 'Refresh' }).or(
-        page.locator('button[aria-label*="Refresh"]')
-      );
-
-      if (await refreshButton.count() > 0) {
-        await refreshButton.first().click();
-        await page.waitForTimeout(500);
-      }
-
-      // Suggestions should still be visible
-      await expect(page.locator('button:has-text("Add to Plan")').first()).toBeVisible();
+      await expect(page.getByTestId('suggestion-card').first()).toBeVisible();
+      await page.getByRole('button', { name: 'Refresh suggestions' }).click();
+      await expect(page.getByTestId('suggestion-card')).toHaveCount(4);
     });
 
     test('should open day/meal selector when adding suggestion to plan', async ({ page }) => {
       await mealPlanHelper.navigateToMealPlan();
-
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-
-      // Click "Add to Plan" on first suggestion
-      await page.locator('button:has-text("Add to Plan")').first().click();
-
-      // Modal with day/meal selector should open
-      await expect(page.locator('text=Add to Meal Plan').or(page.locator('select'))).toBeVisible({ timeout: 5000 });
+      await page.getByTestId('suggestion-card').first().getByRole('button', { name: 'Add to Plan' }).click();
+      await expect(page.getByRole('dialog')).toContainText('Add to Meal Plan');
     });
   });
 
