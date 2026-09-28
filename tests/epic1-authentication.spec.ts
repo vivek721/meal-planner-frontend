@@ -170,7 +170,7 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
       await expect(page.locator('text=Generate shopping lists').or(page.locator('text=Shopping'))).toBeVisible();
 
       await page.click('button:has-text("Next")');
-      await expect(page.locator('text=AI suggestions').or(page.locator('text=Get AI'))).toBeVisible();
+      await expect(page.locator('text=Get Meal Suggestions')).toBeVisible();
     });
 
     test('should navigate back through screens', async ({ page }) => {

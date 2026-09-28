@@ -68,22 +68,24 @@ export const Dashboard: React.FC = () => {
             <p className="text-gray-600">View and manage your weekly meal schedule</p>
           </div>
 
-          <div className="bg-white rounded-xl shadow p-6 hover:shadow-lg transition-shadow cursor-pointer opacity-60">
+          <div
+            onClick={() => navigate('/recipes')}
+            className="bg-white rounded-xl shadow p-6 hover:shadow-lg transition-shadow cursor-pointer"
+          >
             <div className="bg-purple-100 text-purple-600 p-3 rounded-lg w-fit mb-4">
               <BookOpen size={24} />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Browse Recipes</h3>
             <p className="text-gray-600">Discover new recipes and add them to your plan</p>
-            <span className="text-xs text-gray-500 mt-2 block">Coming in Epic 3</span>
           </div>
 
-          <div className="bg-white rounded-xl shadow p-6 hover:shadow-lg transition-shadow cursor-pointer opacity-60">
+          <div className="bg-white rounded-xl shadow p-6 opacity-60">
             <div className="bg-green-100 text-green-600 p-3 rounded-lg w-fit mb-4">
               <ShoppingCart size={24} />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Shopping List</h3>
             <p className="text-gray-600">Generate your grocery list automatically</p>
-            <span className="text-xs text-gray-500 mt-2 block">Coming in Epic 4</span>
+            <span className="text-xs text-gray-500 mt-2 block">Coming soon</span>
           </div>
         </div>
 
@@ -98,15 +100,6 @@ export const Dashboard: React.FC = () => {
               Need help getting started? Replay the onboarding tutorial anytime.
             </p>
           </div>
-        </div>
-
-        {/* Status Notice */}
-        <div className="mt-8 p-4 bg-primary-50 border border-primary-200 rounded-lg">
-          <p className="text-sm text-primary-800">
-            <strong>✓ Epic 1:</strong> Authentication & Onboarding - Complete<br />
-            <strong>✓ Epic 2:</strong> Meal Planning - Complete<br />
-            <strong className="text-gray-600">Epic 3-7:</strong> Coming soon...
-          </p>
         </div>
       </main>
     </div>

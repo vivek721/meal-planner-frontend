@@ -84,7 +84,7 @@ class MealPlanService {
       recipeId: recipe.id,
       recipeName: recipe.name,
       thumbnail: recipe.thumbnail,
-      prepTime: recipe.prepTime,
+      prepTime: recipe.prepTime + recipe.cookTime, // total time, as shown on recipe cards
       addedAt: new Date().toISOString(),
     };
 
