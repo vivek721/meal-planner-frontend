@@ -30,7 +30,7 @@ const slides: OnboardingSlide[] = [
   {
     id: 3,
     title: 'Discover Recipes',
-    description: 'Browse 70 recipes. Search by name or ingredient, filter by cuisine and dietary needs, and save your favourites.',
+    description: 'Browse real recipes with photos from TheMealDB. Pick a category, search by name, filter by cuisine or main ingredient, and save your favourites.',
     icon: <Search size={48} />,
     iconBgColor: 'bg-purple-100 text-purple-600',
   },
@@ -44,7 +44,7 @@ const slides: OnboardingSlide[] = [
   {
     id: 5,
     title: 'Get Meal Suggestions',
-    description: 'Not sure what to cook? The meal plan suggests recipes that suit the time of day, favouring quick and highly rated dishes.',
+    description: 'Not sure what to cook? The meal plan suggests recipes based on the time of day, favouring categories you have not planned yet this week for variety.',
     icon: <Sparkles size={48} />,
     iconBgColor: 'bg-secondary-100 text-secondary-600',
   },

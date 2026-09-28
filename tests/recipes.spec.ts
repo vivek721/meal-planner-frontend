@@ -138,3 +138,22 @@ test.describe('Recipes page (TheMealDB via /api/recipes)', () => {
     await expect(cards).toContainText('Beef and Mustard Pie');
   });
 });
+
+test.describe('Onboarding copy', () => {
+  test('the Discover Recipes slide describes TheMealDB, not 70 bundled recipes', async ({ page }) => {
+    await mockRecipesApi(page);
+    await signInWithMockedSession(page);
+    await page.goto('/onboarding');
+    await page.getByRole('button', { name: 'Next' }).click();
+    await page.getByRole('button', { name: 'Next' }).click();
+    await expect(page.getByText('Discover Recipes')).toBeVisible();
+    await expect(page.getByText(/TheMealDB/)).toBeVisible();
+    await expect(page.getByText(/70 recipes/)).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Next' }).click();
+    await page.getByRole('button', { name: 'Next' }).click();
+    await expect(page.getByText('Get Meal Suggestions')).toBeVisible();
+    await expect(page.getByText(/time of day/)).toBeVisible();
+    await expect(page.getByText(/highly rated/)).toHaveCount(0);
+  });
+});
