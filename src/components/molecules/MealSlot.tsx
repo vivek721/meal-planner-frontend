@@ -1,12 +1,13 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useDroppable } from '@dnd-kit/core';
-import { Clock, Plus, X } from 'lucide-react';
-import type { MealSlot as MealSlotType } from '../../types/recipe.types';
-import RecipeService from '../../services/RecipeService';
+import { Plus, X } from 'lucide-react';
+import type { MealSlot as MealSlotType, MealType } from '../../types/recipe.types';
+import { previewImage } from '../../services/recipes/recipeUtils';
 
 interface MealSlotProps {
   dayDate: string;
-  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snacks';
+  mealType: MealType;
   meal?: MealSlotType;
   onAdd: () => void;
   onRemove: () => void;
@@ -27,9 +28,6 @@ export const MealSlot: React.FC<MealSlotProps> = ({
   });
 
   const isEmpty = !meal;
-  // Prefer live recipe data so saved slots pick up thumbnail/time fixes
-  const recipe = meal ? RecipeService.getRecipeById(meal.recipeId) : null;
-  const totalTime = recipe ? recipe.prepTime + recipe.cookTime : meal?.prepTime;
 
   return (
     <div
@@ -61,26 +59,23 @@ export const MealSlot: React.FC<MealSlotProps> = ({
             <X className="w-4 h-4 text-red-500" />
           </button>
 
-          {/* Meal content */}
-          <div className="flex gap-3">
-            {/* Thumbnail */}
+          {/* Rendered from the stored slot only (no API call); old slots keep working */}
+          <Link
+            to={`/recipes/${meal.recipeId}`}
+            data-testid="planned-meal"
+            className="flex gap-3 items-center rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
             <img
-              src={recipe?.thumbnail ?? meal.thumbnail}
+              src={previewImage(meal.thumbnail)}
               alt={meal.recipeName}
+              loading="lazy"
               className="w-16 h-16 rounded-md object-cover flex-shrink-0"
             />
-
-            {/* Details */}
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-sm text-gray-900 truncate mb-1">
-                {meal.recipeName}
-              </h4>
-              <div className="flex items-center gap-1 text-xs text-gray-500">
-                <Clock className="w-3 h-3" />
-                <span>{totalTime} min</span>
-              </div>
+              <h4 className="font-medium text-sm text-gray-900 truncate mb-1">{meal.recipeName}</h4>
+              {meal.category && <p className="text-xs text-gray-500 truncate">{meal.category}</p>}
             </div>
-          </div>
+          </Link>
         </div>
       )}
     </div>

@@ -20,8 +20,7 @@ import {
 import { DayColumn } from '../molecules/DayColumn';
 import { WeekNavigation } from '../molecules/WeekNavigation';
 import { RecipeCard } from '../molecules/RecipeCard';
-import type { MealPlan, MealType } from '../../types/recipe.types';
-import type { Recipe } from '../../types/legacyRecipe.types';
+import type { MealPlan, MealType, RecipeSummary } from '../../types/recipe.types';
 
 interface MealSlotDropData {
   dayDate: string;
@@ -36,7 +35,7 @@ interface MealPlanCalendarProps {
   mealPlan: MealPlan | null;
   onAddMealClick: (dayDate: string, mealType: MealType) => void;
   onRemoveMeal: (dayDate: string, mealType: MealType) => void;
-  onDropRecipe: (recipe: Recipe, dayDate: string, mealType: MealType) => void;
+  onDropRecipe: (recipe: RecipeSummary, dayDate: string, mealType: MealType) => void;
   onCopyDayClick: (dayDate: string) => void;
 }
 
@@ -49,7 +48,7 @@ export const MealPlanCalendar: React.FC<MealPlanCalendarProps> = ({
   onDropRecipe,
   onCopyDayClick,
 }) => {
-  const [activeRecipe, setActiveRecipe] = useState<Recipe | null>(null);
+  const [activeRecipe, setActiveRecipe] = useState<RecipeSummary | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -78,7 +77,7 @@ export const MealPlanCalendar: React.FC<MealPlanCalendarProps> = ({
   };
 
   const handleDragStart = (event: DragStartEvent) => {
-    const recipe = event.active.data.current?.recipe as Recipe | undefined;
+    const recipe = event.active.data.current?.recipe as RecipeSummary | undefined;
     if (recipe) {
       setActiveRecipe(recipe);
     }
@@ -90,7 +89,7 @@ export const MealPlanCalendar: React.FC<MealPlanCalendarProps> = ({
 
     if (!over || !mealPlan) return;
 
-    const recipe = active.data.current?.recipe as Recipe | undefined;
+    const recipe = active.data.current?.recipe as RecipeSummary | undefined;
     const dropTarget = over.data.current as MealSlotDropData | undefined;
 
     if (recipe && dropTarget) {

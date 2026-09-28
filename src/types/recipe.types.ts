@@ -58,11 +58,18 @@ export interface RecipeQuery {
   limit?: number;
 }
 
+/**
+ * A planned meal. The calendar renders it from these stored fields alone (no
+ * API call). Slots saved before TheMealDB carry an old "recipe-001" id, a
+ * placeholder image, a leftover cooking-time field and no category; they
+ * still render.
+ */
 export interface MealSlot {
   recipeId: string;
   recipeName: string;
   thumbnail: string;
-  prepTime: number;
+  /** TheMealDB category when known; suggestions use it for variety. */
+  category?: string;
   addedAt: string; // ISO timestamp
 }
 
