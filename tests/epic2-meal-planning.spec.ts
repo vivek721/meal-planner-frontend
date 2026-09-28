@@ -58,9 +58,13 @@ test.describe('Epic 2: Meal Planning', () => {
     test('should show all 4 meal slots for each day', async ({ page }) => {
       await mealPlanHelper.navigateToMealPlan();
 
-      // Each day column should have exactly 4 meal slots (breakfast, lunch, dinner, snacks)
-      const firstDay = page.getByTestId('meal-plan-day').first();
-      await expect(firstDay.getByTestId('meal-slot')).toHaveCount(4);
+      // Every one of the 7 day columns should have exactly 4 meal slots (breakfast,
+      // lunch, dinner, snacks) - not just the first day.
+      const days = page.getByTestId('meal-plan-day');
+      await expect(days).toHaveCount(7);
+      for (let i = 0; i < 7; i++) {
+        await expect(days.nth(i).getByTestId('meal-slot')).toHaveCount(4);
+      }
     });
 
     test('should show "Add meal" placeholder in empty slots', async ({ page }) => {
