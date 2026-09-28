@@ -2,10 +2,11 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  // epic1-authentication.spec.ts needs the real backend (see tests/README.md), which CI
-  // does not run. Excluding it here keeps the default `playwright test` / CI matrix jobs
-  // honest; `npm run test:epic1` still runs it explicitly against a live backend.
-  testIgnore: process.env.CI ? ['**/epic1-authentication.spec.ts'] : [],
+  // epic1-authentication.spec.ts needs a real backend. In CI it only runs in the
+  // dedicated test-epic1 job (.github/workflows/playwright.yml), which provisions the
+  // backend and sets E2E_BACKEND=1; every other CI job (chromium/firefox/webkit/mobile)
+  // excludes it. Locally (no CI) it always runs, same as `npm run test:epic1`.
+  testIgnore: process.env.CI && !process.env.E2E_BACKEND ? ['**/epic1-authentication.spec.ts'] : [],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
