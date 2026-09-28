@@ -134,21 +134,34 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
       // auth_service.go), so the 3rd attempt is the one that crosses the threshold and
       // locks the account in the same request - it responds 403 with the sentinel
       // ErrAccountLocked's text, "account is locked due to too many failed login
-      // attempts". A later attempt against an already-locked account instead hits the
-      // early IsAccountLocked() check and gets AccountLockedError's text, "account is
-      // locked. Please try again in N minute(s)". Either way the copy contains "locked".
-      // Wait for each attempt's response to render before submitting the next one,
-      // instead of a fixed sleep.
+      // attempts" (the two prior attempts respond 401 "Invalid email or password"; see
+      // internal/handlers/auth_handler.go). A later attempt against an already-locked
+      // account instead hits the early IsAccountLocked() check and gets
+      // AccountLockedError's text, "account is locked. Please try again in N
+      // minute(s)". Either way the copy contains "locked".
+      //
+      // Wait for each attempt's actual network response (not just "some error text is
+      // visible"): waiting on text alone can pass vacuously from the 2nd attempt on,
+      // since the *previous* attempt's error is often still on screen while the next
+      // request is in flight.
       for (let i = 0; i < 3; i++) {
         await page.fill('input[name="email"]', testEmail);
         await page.fill('input[name="password"]', 'WrongPassword');
-        await page.click('button[type="submit"]');
-        await expect(page.getByText(/invalid email or password|locked/i)).toBeVisible();
+        const [response] = await Promise.all([
+          page.waitForResponse(
+            (r) => r.url().includes('/api/auth/login') && r.request().method() === 'POST'
+          ),
+          page.click('button[type="submit"]'),
+        ]);
+        const expectedStatus = i < 2 ? 401 : 403;
+        expect(response.status()).toBe(expectedStatus);
+        // Two elements can match /locked/i once locked on the 3rd attempt (the lock
+        // message plus LoginForm's "temporarily locked" follow-up paragraph), so assert
+        // on the first.
+        await expect(page.getByText(/invalid email or password|locked/i).first()).toBeVisible();
       }
 
-      // Should show lock message. Two elements match /locked/i once locked (the message
-      // and the "temporarily locked" follow-up LoginForm renders alongside it), so assert
-      // on the first.
+      // Should show lock message.
       await expect(page.getByText(/locked/i).first()).toBeVisible();
     });
 
