@@ -1,30 +1,11 @@
 import { createContext, useContext } from 'react';
-import type { Recipe, RecipeFilter } from '../types/legacyRecipe.types';
-import type { SortOption } from '../services/RecipeService';
 
 export interface RecipeContextType {
-  // Favorites
-  favorites: Set<string>;
-  toggleFavorite: (recipeId: string) => boolean;
+  /** The signed-in user's favourite TheMealDB ids, oldest first. */
+  favoriteIds: string[];
   isFavorite: (recipeId: string) => boolean;
-  favoriteRecipes: Recipe[];
-  loadFavorites: () => void;
-
-  // Search & Filter
-  searchResults: Recipe[];
-  totalResults: number;
-  isSearching: boolean;
-  searchRecipes: (filters: RecipeFilter, options?: { sortBy?: SortOption; limit?: number; offset?: number }) => void;
-  clearSearch: () => void;
-
-  // Current recipe (for detail page)
-  currentRecipe: Recipe | null;
-  setCurrentRecipe: (recipe: Recipe | null) => void;
-
-  // Serving size adjustment
-  adjustedServings: number;
-  setAdjustedServings: (servings: number) => void;
-  getAdjustedRecipe: () => Recipe | null;
+  /** Adds or removes a favourite; returns true when it is now a favourite. */
+  toggleFavorite: (recipeId: string) => boolean;
 }
 
 // Kept apart from RecipeProvider so RecipeContext.tsx only exports components
