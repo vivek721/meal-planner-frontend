@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Filter, Heart, Home, Search } from 'lucide-react';
 import { useRecipes } from '../contexts/useRecipes';
 import { Breadcrumb } from '../components/atoms/Breadcrumb';

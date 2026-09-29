@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useDroppable } from '@dnd-kit/core';
 import { Plus, X } from 'lucide-react';
 import type { MealSlot as MealSlotType, MealType } from '../../types/recipe.types';

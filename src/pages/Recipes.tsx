@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router';
 import { ArrowLeft, Home, Search } from 'lucide-react';
 import { Breadcrumb } from '../components/atoms/Breadcrumb';
 import { Button } from '../components/atoms/Button';
