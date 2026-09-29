@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { ChefHat, ExternalLink, Home, Youtube } from 'lucide-react';
 import { useToast } from '../contexts/useToast';
 import { Badge } from '../components/atoms/Badge';

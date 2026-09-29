@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { ChevronLeft, ChevronRight, Calendar, Search, ShoppingCart, Sparkles, X } from 'lucide-react';
 import { Button } from '../atoms/Button';
 import AuthService from '../../services/AuthService';

@@ -38,7 +38,7 @@ A React + TypeScript single-page app for planning a week of meals. You can sign 
 | Framework | React 18, TypeScript 5 |
 | Build / dev server | Vite 5 |
 | Styling | Tailwind CSS 3 (custom teal/orange palette, Inter font) |
-| Routing | React Router 6 |
+| Routing | React Router 7 |
 | Forms and validation | React Hook Form + Zod |
 | HTTP | Axios (shared client with auth and error interceptors) |
 | State | React Context (`AuthContext`, `RecipeContext` for favourites, `ToastContext`) |
@@ -79,7 +79,7 @@ Components follow an atomic-design layout (atoms, then molecules, then organisms
 ## Getting started
 
 ### Prerequisites
-- Node.js 18 or later (CI uses 18.x and 20.x) and npm
+- Node.js 20 or later (CI uses 20.x and 22.x) and npm
 - A running copy of [meal-planner-backend](https://github.com/vivek721/meal-planner-backend) to register, log in and load recipes. It listens on port `3001` by default and accepts CORS requests from `http://localhost:3000`.
 
 ### Install and run
