@@ -31,8 +31,13 @@ export const Favorites: React.FC = () => {
 
   // Details come from the per-session cache, so revisits cost no requests
   const loadFavorites = useCallback(() => loadFavoriteRecipes(favoriteIds, getRecipe), [favoriteIds]);
-  const favorites = useAsync(favoriteIds.length > 0 ? loadFavorites : null);
-  const recipes = useMemo(() => favorites.data ?? [], [favorites.data]);
+  // Removing a favourite reloads the list; keep the current cards (minus the
+  // removed one) on screen meanwhile instead of flashing loading skeletons
+  const favorites = useAsync(favoriteIds.length > 0 ? loadFavorites : null, { keepPreviousData: true });
+  const recipes = useMemo(
+    () => (favorites.data ?? []).filter((recipe) => favoriteIds.includes(recipe.id)),
+    [favorites.data, favoriteIds],
+  );
 
   const categoryOptions = useMemo(
     () =>
@@ -78,11 +83,11 @@ export const Favorites: React.FC = () => {
         </div>
       </div>
     );
-  } else if (favorites.loading) {
+  } else if (favorites.loading && !favorites.data) {
     content = (
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {Array.from({ length: Math.min(favoriteIds.length, 8) }).map((_, i) => (
-          <div key={i} className="h-72 bg-gray-200 rounded-lg animate-pulse"></div>
+          <div key={i} data-testid="favorites-skeleton" className="h-72 bg-gray-200 rounded-lg animate-pulse"></div>
         ))}
       </div>
     );

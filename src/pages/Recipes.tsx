@@ -12,7 +12,7 @@ import { RecipeCard } from '../components/molecules/RecipeCard';
 import { useAsync } from '../hooks/useAsync';
 import recipesApi, { DEFAULT_PAGE_SIZE, MAX_SEARCH_LENGTH } from '../services/api/recipesApi';
 import { loadCategories, loadCuisines } from '../services/recipes/recipeData';
-import { filterOptions } from '../services/recipes/recipeUtils';
+import { filterOptions, listedSpelling } from '../services/recipes/recipeUtils';
 
 type FilterKey = 'q' | 'category' | 'cuisine' | 'ingredient';
 
@@ -93,6 +93,39 @@ export const Recipes: React.FC = () => {
   const categoryOptions = filterOptions('All categories', (categories.data ?? []).map((c) => c.name), category);
   const cuisineOptions = filterOptions('All cuisines', cuisines.data ?? [], cuisine);
 
+  // Tidy hand-typed URLs, replacing the history entry so Back still works:
+  // drop an invalid page number, move a page past the end to the last page,
+  // and use the listed spelling of a category or cuisine ("beef" → "Beef").
+  const rawPage = searchParams.get('page');
+  const lastPage =
+    results.data && results.data.total > 0 && page > results.data.totalPages ? results.data.totalPages : null;
+  const listedCategory = categories.data
+    ? listedSpelling(
+        categories.data.map((c) => c.name),
+        category,
+      )
+    : undefined;
+  const listedCuisine = cuisines.data ? listedSpelling(cuisines.data, cuisine) : undefined;
+  useEffect(() => {
+    const fixes: Record<string, string | null> = {};
+    if (rawPage !== null && rawPage !== String(page)) fixes.page = page > 1 ? String(page) : null;
+    if (lastPage !== null) fixes.page = String(lastPage);
+    if (listedCategory && listedCategory !== category) fixes.category = listedCategory;
+    if (listedCuisine && listedCuisine !== cuisine) fixes.cuisine = listedCuisine;
+    if (Object.keys(fixes).length === 0) return;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        for (const [key, value] of Object.entries(fixes)) {
+          if (value === null) next.delete(key);
+          else next.set(key, value);
+        }
+        return next;
+      },
+      { replace: true },
+    );
+  }, [rawPage, page, lastPage, category, listedCategory, cuisine, listedCuisine, setSearchParams]);
+
   const showCategory = (name: string) => setFilters({ category: name, q: '', cuisine: '', ingredient: '' });
   const backToCategories = () => setSearchParams(new URLSearchParams());
   const goToPage = (next: number) => {
@@ -128,7 +161,9 @@ export const Recipes: React.FC = () => {
   } else if (results.loading) {
     body = <Skeletons count={8} height="h-72" />;
   } else if (results.error) {
-    body = <ErrorPanel message={results.error.message} onRetry={results.retry} />;
+    // A rejected request (e.g. a search over 100 characters) fails the same way every time
+    const canRetry = results.error.kind !== 'badRequest';
+    body = <ErrorPanel message={results.error.message} onRetry={canRetry ? results.retry : undefined} />;
   } else if (!results.data || results.data.recipes.length === 0) {
     body = (
       <>

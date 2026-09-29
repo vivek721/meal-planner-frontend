@@ -65,6 +65,31 @@ test.describe('Favourites (TheMealDB via /api/recipes)', () => {
     ]);
   });
 
+  test('removing a favourite keeps the other cards on screen (no loading flash)', async ({ page }) => {
+    await signInWithMockedSession(page, favoritesStorage(['52772', '52874', '52795']));
+    await page.goto('/favorites');
+    const cards = page.getByTestId('recipe-card');
+    await expect(cards).toHaveCount(3);
+
+    // Record any loading skeleton that appears, however briefly
+    await page.evaluate(() => {
+      const w = window as unknown as { sawSkeleton: boolean };
+      w.sawSkeleton = false;
+      new MutationObserver(() => {
+        if (document.querySelector('[data-testid="favorites-skeleton"]')) w.sawSkeleton = true;
+      }).observe(document.body, { childList: true, subtree: true });
+    });
+    await cards
+      .filter({ hasText: 'Chicken Handi' })
+      .getByRole('button', { name: 'Remove from favorites' })
+      .click();
+
+    await expect(cards).toHaveCount(2);
+    await expect(cards.filter({ hasText: 'Chicken Handi' })).toHaveCount(0);
+    expect(await page.evaluate(() => (window as unknown as { sawSkeleton: boolean }).sawSkeleton)).toBe(false);
+    await expect(page.getByText('Your collection of saved recipes - 2 recipes')).toBeVisible();
+  });
+
   test('skips a favourite that TheMealDB no longer has (404)', async ({ page }) => {
     await signInWithMockedSession(page, favoritesStorage(['52772', '99999']));
     await page.goto('/favorites');

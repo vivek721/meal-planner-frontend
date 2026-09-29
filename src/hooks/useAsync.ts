@@ -9,6 +9,14 @@ export interface AsyncState<T> {
   retry: () => void;
 }
 
+export interface AsyncOptions {
+  /**
+   * While a new loader runs, keep returning the last successful data (with
+   * loading still true) instead of null, so the page need not blank out.
+   */
+  keepPreviousData?: boolean;
+}
+
 interface Settled<T> {
   loader: () => Promise<T>;
   attempt: number;
@@ -22,7 +30,7 @@ interface Settled<T> {
  * is ever shown, so a slow response for an older query (or one that arrives
  * after unmount) is ignored.
  */
-export function useAsync<T>(loader: (() => Promise<T>) | null): AsyncState<T> {
+export function useAsync<T>(loader: (() => Promise<T>) | null, options: AsyncOptions = {}): AsyncState<T> {
   const [attempt, setAttempt] = useState(0);
   const [settled, setSettled] = useState<Settled<T> | null>(null);
 
@@ -45,10 +53,12 @@ export function useAsync<T>(loader: (() => Promise<T>) | null): AsyncState<T> {
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
   const isCurrent = loader !== null && settled !== null && settled.loader === loader && settled.attempt === attempt;
+  const loading = loader !== null && !isCurrent;
+  const previous = options.keepPreviousData && loading ? (settled?.data ?? null) : null;
   return {
-    data: isCurrent ? settled.data : null,
+    data: isCurrent ? settled.data : previous,
     error: isCurrent ? settled.error : null,
-    loading: loader !== null && !isCurrent,
+    loading,
     retry,
   };
 }
