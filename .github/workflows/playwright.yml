@@ -104,41 +104,70 @@ jobs:
     name: Epic 1 - Authentication Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Disabled: epic1-authentication.spec.ts needs a live backend, which this workflow does
-    # not provision (see tests/README.md and playwright.config.ts's CI-only testIgnore).
-    # Re-enable once a backend service is available to this job.
-    if: false
 
     steps:
-      - name: Checkout code
+      - name: Checkout frontend code
         uses: actions/checkout@v4
+        with:
+          path: frontend
+
+      - name: Checkout backend code
+        uses: actions/checkout@v4
+        with:
+          repository: vivek721/meal-planner-backend
+          path: backend
+
+      - name: Start backend
+        run: docker compose -f backend/docker-compose.yml up -d --build
+
+      - name: Wait for backend health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3001/health; then
+              echo "Backend is healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend did not become healthy in time"
+          docker compose -f backend/docker-compose.yml logs
+          exit 1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
+        working-directory: frontend
         run: npm ci
 
       - name: Install Playwright Browsers
+        working-directory: frontend
         run: npx playwright install --with-deps chromium
 
       - name: Run Epic 1 tests
-        run: npm run test:epic1
+        working-directory: frontend
+        run: npx playwright test tests/epic1-authentication.spec.ts --project=chromium --reporter=line,html
         env:
           CI: true
+          E2E_BACKEND: 1
 
       - name: Upload test results
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-results-epic1
           path: |
-            playwright-report/
-            test-results/
+            frontend/playwright-report/
+            frontend/test-results/
           retention-days: 7
+
+      - name: Stop backend
+        if: always()
+        run: docker compose -f backend/docker-compose.yml down -v
 
   test-epic2:
     name: Epic 2 - Meal Planning Tests

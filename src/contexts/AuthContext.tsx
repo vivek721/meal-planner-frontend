@@ -9,7 +9,12 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Gates the route guards in App.tsx; true only until the initial session check settles.
+  const [initializing, setInitializing] = useState(true);
+  // Per-action (login/register/logout) spinner flag; must stay independent of
+  // `initializing` so a failed login/register doesn't unmount PublicRoute's children
+  // (see AuthContextType's `loading` doc comment).
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     // Check if user is authenticated on mount
@@ -21,7 +26,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(currentUser);
         }
       }
-      setLoading(false);
+      setInitializing(false);
     };
 
     checkAuth();
@@ -72,6 +77,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
+    initializing,
     loading,
     login,
     register,

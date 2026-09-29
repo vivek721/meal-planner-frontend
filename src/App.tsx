@@ -16,9 +16,12 @@ import { Favorites } from './pages/Favorites';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  // `initializing`, not `loading`: gating on the per-action `loading` flag would unmount
+  // (and remount) this route's children on every login/logout, which is unrelated to
+  // ProtectedRoute but shares the same context value.
+  const { isAuthenticated, initializing } = useAuth();
 
-  if (loading) {
+  if (initializing) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
@@ -31,9 +34,13 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 // Public Route Component (redirect if authenticated)
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  // `initializing`, not `loading`: a failed login/register sets `loading` true for the
+  // duration of the request. Gating on it here would unmount LoginForm/RegisterForm (and
+  // remount a fresh instance once `loading` clears), silently discarding the error message
+  // the form had just set in its local state.
+  const { isAuthenticated, initializing } = useAuth();
 
-  if (loading) {
+  if (initializing) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
@@ -46,9 +53,9 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 // Root redirect component
 const RootRedirect: React.FC = () => {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, user, initializing } = useAuth();
 
-  if (loading) {
+  if (initializing) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>

@@ -31,6 +31,11 @@ export class AuthHelper {
 
   async logout() {
     await this.page.click('button:has-text("Logout")');
+    // Dashboard's handleLogout awaits AuthService.logout() (which clears the stored
+    // token in a `finally`) before navigating. Wait for that navigation to actually land
+    // so a subsequent hard navigation (e.g. page.goto) in the caller can't tear down the
+    // page mid-await and skip the token clear.
+    await this.page.waitForURL(/\/login/, { timeout: 10000 });
   }
 
   async skipOnboarding() {

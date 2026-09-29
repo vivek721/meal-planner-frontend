@@ -84,10 +84,13 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
   });
 
   test.describe('US-1.2: User Login', () => {
-    const testEmail = 'login-test@example.com';
+    // Unique per test (not just per file) so re-running this file against the same
+    // (unreset) database never collides with a previous test's or run's registration.
+    let testEmail: string;
     const testPassword = 'Test123!@#';
 
     test.beforeEach(async () => {
+      testEmail = `login-test-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
       // Create a test user
       await authHelper.register(testEmail, testPassword, 'Login Test');
       await authHelper.skipOnboarding();
@@ -115,6 +118,9 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
 
     test('should remember user when "Remember me" is checked', async ({ page }) => {
       await authHelper.login(testEmail, testPassword, true);
+      // Against a real backend the login request is genuinely async; wait for it to
+      // resolve (redirect to dashboard) before checking storage.
+      await expect(page).toHaveURL(/\/dashboard/);
 
       // The JWT is kept in localStorage (key used by src/services/AuthService.ts)
       const authToken = await page.evaluate(() => localStorage.getItem('meal_planner_auth_token'));
@@ -124,16 +130,39 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
     test('should lock account after 3 failed login attempts', async ({ page }) => {
       await page.goto('/login');
 
-      // Try 3 times with wrong password
+      // Try 3 times with wrong password. MaxLoginAttempts is 3 (internal/services/
+      // auth_service.go), so the 3rd attempt is the one that crosses the threshold and
+      // locks the account in the same request - it responds 403 with the sentinel
+      // ErrAccountLocked's text, "account is locked due to too many failed login
+      // attempts" (the two prior attempts respond 401 "Invalid email or password"; see
+      // internal/handlers/auth_handler.go). A later attempt against an already-locked
+      // account instead hits the early IsAccountLocked() check and gets
+      // AccountLockedError's text, "account is locked. Please try again in N
+      // minute(s)". Either way the copy contains "locked".
+      //
+      // Wait for each attempt's actual network response (not just "some error text is
+      // visible"): waiting on text alone can pass vacuously from the 2nd attempt on,
+      // since the *previous* attempt's error is often still on screen while the next
+      // request is in flight.
       for (let i = 0; i < 3; i++) {
         await page.fill('input[name="email"]', testEmail);
         await page.fill('input[name="password"]', 'WrongPassword');
-        await page.click('button[type="submit"]');
-        await page.waitForTimeout(500);
+        const [response] = await Promise.all([
+          page.waitForResponse(
+            (r) => r.url().includes('/api/auth/login') && r.request().method() === 'POST'
+          ),
+          page.click('button[type="submit"]'),
+        ]);
+        const expectedStatus = i < 2 ? 401 : 403;
+        expect(response.status()).toBe(expectedStatus);
+        // Two elements can match /locked/i once locked on the 3rd attempt (the lock
+        // message plus LoginForm's "temporarily locked" follow-up paragraph), so assert
+        // on the first.
+        await expect(page.getByText(/invalid email or password|locked/i).first()).toBeVisible();
       }
 
-      // Should show lock message
-      await expect(page.locator('text=Account locked').or(page.locator('text=too many attempts'))).toBeVisible();
+      // Should show lock message.
+      await expect(page.getByText(/locked/i).first()).toBeVisible();
     });
 
     test('should maintain session across page refreshes', async ({ page }) => {
@@ -167,7 +196,7 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
       await expect(page.locator('text=Discover recipes').or(page.locator('text=Discover Recipes'))).toBeVisible();
 
       await page.click('button:has-text("Next")');
-      await expect(page.locator('text=Generate shopping lists').or(page.locator('text=Shopping'))).toBeVisible();
+      await expect(page.getByRole('heading', { name: /Shopping Lists/i })).toBeVisible();
 
       await page.click('button:has-text("Next")');
       await expect(page.locator('text=Get Meal Suggestions')).toBeVisible();
@@ -214,7 +243,7 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
       await authHelper.register(testEmail, 'Test123!@#', 'Progress Test');
 
       // Progress indicator should be visible
-      await expect(page.locator('[class*="progress"]').or(page.locator('[role="progressbar"]'))).toBeVisible();
+      await expect(page.getByRole('progressbar')).toBeVisible();
     });
 
     test('should support keyboard navigation', async ({ page }) => {
@@ -252,6 +281,23 @@ test.describe('Epic 1: Authentication & Onboarding', () => {
       // Step 6: Verify dashboard (no onboarding this time)
       await expect(page).toHaveURL(/\/dashboard/);
       await expect(page.locator('text=Welcome')).toBeVisible();
+    });
+
+    test('should show the register form immediately after logout (no bounce back to dashboard)', async ({ page }) => {
+      const testEmail = `logout-race-${Date.now()}@example.com`;
+      const testPassword = 'Test123!@#';
+
+      await authHelper.register(testEmail, testPassword, 'Logout Race Test');
+      await authHelper.completeOnboarding();
+      await expect(page).toHaveURL(/\/dashboard/);
+
+      // Dashboard.tsx's handleLogout must await logout() before navigating; otherwise the
+      // token is still in localStorage when PublicRoute checks it on /register and bounces
+      // straight back to /dashboard.
+      await authHelper.logout();
+      await page.goto('/register');
+      await expect(page).toHaveURL(/\/register/);
+      await expect(page.locator('input[name="email"]')).toBeVisible();
     });
   });
 });

@@ -33,6 +33,7 @@ export const DayColumn: React.FC<DayColumnProps> = ({
 
   return (
     <div
+      data-testid="meal-plan-day"
       className={`
         flex flex-col bg-white rounded-lg border-2 overflow-hidden
         ${isCurrentDay ? 'border-primary-500 shadow-lg' : 'border-gray-200'}
