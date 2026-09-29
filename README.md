@@ -36,7 +36,7 @@ A React + TypeScript single-page app for planning a week of meals. You can sign 
 | Area | Choice |
 | --- | --- |
 | Framework | React 18, TypeScript 5 |
-| Build / dev server | Vite 5 |
+| Build / dev server | Vite 6 |
 | Styling | Tailwind CSS 3 (custom teal/orange palette, Inter font) |
 | Routing | React Router 7 |
 | Forms and validation | React Hook Form + Zod |
