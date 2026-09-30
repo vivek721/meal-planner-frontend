@@ -1,8 +1,9 @@
 import axios from 'axios';
 import apiClient from './apiClient';
-import type { Recipe, RecipeCategory, RecipePage, RecipeQuery } from '../../types/recipe.types';
+import type { Recipe, RecipeCategory, RecipeNutrition, RecipePage, RecipeQuery } from '../../types/recipe.types';
 
 export const RECIPES_UNAVAILABLE_MESSAGE = 'Recipes are temporarily unavailable, please try again shortly';
+export const NUTRITION_UNAVAILABLE_MESSAGE = 'Nutrition is temporarily unavailable, please try again shortly';
 export const RECIPE_NOT_AVAILABLE_MESSAGE = 'This recipe is no longer available';
 export const NETWORK_ERROR_MESSAGE = 'Could not reach the server. Check your connection and try again.';
 export const SESSION_EXPIRED_MESSAGE = 'Your session has expired. Please sign in again.';
@@ -108,6 +109,23 @@ class RecipesApi {
       return response.data;
     } catch (error) {
       throw toRecipeApiError(error);
+    }
+  }
+
+  /**
+   * Nutrition estimate for one recipe (USDA FoodData Central)
+   * GET /api/recipes/:id/nutrition
+   */
+  async getNutrition(id: string): Promise<RecipeNutrition> {
+    try {
+      const response = await apiClient.get<RecipeNutrition>(`/api/recipes/${encodeURIComponent(id)}/nutrition`);
+      return response.data;
+    } catch (error) {
+      const mapped = toRecipeApiError(error);
+      if (mapped.kind === 'unavailable') {
+        throw new RecipeApiError('unavailable', NUTRITION_UNAVAILABLE_MESSAGE, mapped.status);
+      }
+      throw mapped;
     }
   }
 
