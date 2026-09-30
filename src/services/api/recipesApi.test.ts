@@ -16,6 +16,7 @@ import recipesApi, {
   NO_CRITERIA_MESSAGE,
   TOO_LONG_MESSAGE,
   NUTRITION_UNAVAILABLE_MESSAGE,
+  NUTRITION_TIMEOUT_MS,
 } from './recipesApi';
 
 const get = vi.mocked(apiClient.get);
@@ -169,7 +170,20 @@ describe('recipesApi', () => {
     };
     get.mockResolvedValueOnce(ok(estimate));
     await expect(recipesApi.getNutrition('52772')).resolves.toEqual(estimate);
-    expect(get).toHaveBeenCalledWith('/api/recipes/52772/nutrition');
+    expect(get).toHaveBeenCalledWith('/api/recipes/52772/nutrition', { timeout: NUTRITION_TIMEOUT_MS });
+  });
+
+  it('getNutrition allows longer than the default request timeout', () => {
+    // A cold estimate makes many USDA calls server-side; single calls were
+    // seen taking 9 s, and the backend's own per-call timeout is 15 s.
+    expect(NUTRITION_TIMEOUT_MS).toBeGreaterThanOrEqual(30000);
+  });
+
+  it('getNutrition reports a timed-out estimate as unavailable, not as a connection problem', async () => {
+    get.mockRejectedValueOnce(new AxiosError('timeout of 30000ms exceeded', 'ECONNABORTED', requestConfig(), {}));
+    const error = await rejectionOf(recipesApi.getNutrition('52772'));
+    expect(error.kind).toBe('unavailable');
+    expect(error.message).toBe(NUTRITION_UNAVAILABLE_MESSAGE);
   });
 
   it('getNutrition maps a 503 to the nutrition message, not the recipes one', async () => {

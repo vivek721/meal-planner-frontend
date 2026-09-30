@@ -4,6 +4,12 @@ import type { Recipe, RecipeCategory, RecipeNutrition, RecipePage, RecipeQuery }
 
 export const RECIPES_UNAVAILABLE_MESSAGE = 'Recipes are temporarily unavailable, please try again shortly';
 export const NUTRITION_UNAVAILABLE_MESSAGE = 'Nutrition is temporarily unavailable, please try again shortly';
+
+/**
+ * A first (uncached) estimate makes many USDA calls on the server, each
+ * allowed 15 s, so the shared client's 10 s timeout is too short for it.
+ */
+export const NUTRITION_TIMEOUT_MS = 30000;
 export const RECIPE_NOT_AVAILABLE_MESSAGE = 'This recipe is no longer available';
 export const NETWORK_ERROR_MESSAGE = 'Could not reach the server. Check your connection and try again.';
 export const SESSION_EXPIRED_MESSAGE = 'Your session has expired. Please sign in again.';
@@ -118,11 +124,15 @@ class RecipesApi {
    */
   async getNutrition(id: string): Promise<RecipeNutrition> {
     try {
-      const response = await apiClient.get<RecipeNutrition>(`/api/recipes/${encodeURIComponent(id)}/nutrition`);
+      const response = await apiClient.get<RecipeNutrition>(`/api/recipes/${encodeURIComponent(id)}/nutrition`, {
+        timeout: NUTRITION_TIMEOUT_MS,
+      });
       return response.data;
     } catch (error) {
+      // A timeout means the server is still working, not that it is unreachable
+      const timedOut = axios.isAxiosError(error) && (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT');
       const mapped = toRecipeApiError(error);
-      if (mapped.kind === 'unavailable') {
+      if (timedOut || mapped.kind === 'unavailable') {
         throw new RecipeApiError('unavailable', NUTRITION_UNAVAILABLE_MESSAGE, mapped.status);
       }
       throw mapped;
