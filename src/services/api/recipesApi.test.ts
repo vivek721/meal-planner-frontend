@@ -15,6 +15,8 @@ import recipesApi, {
   GENERIC_ERROR_MESSAGE,
   NO_CRITERIA_MESSAGE,
   TOO_LONG_MESSAGE,
+  NUTRITION_UNAVAILABLE_MESSAGE,
+  NUTRITION_TIMEOUT_MS,
 } from './recipesApi';
 
 const get = vi.mocked(apiClient.get);
@@ -156,5 +158,44 @@ describe('recipesApi', () => {
   it('maps a 503 from any call', async () => {
     get.mockRejectedValueOnce(httpError(503));
     expect((await rejectionOf(recipesApi.getCuisines())).kind).toBe('unavailable');
+  });
+
+  it('getNutrition requests the nutrition endpoint and returns the estimate', async () => {
+    const estimate = {
+      recipeId: '52772',
+      source: 'USDA FoodData Central',
+      totals: { calories: 102, protein: 15.6, carbohydrate: 9.5, fat: 1.1, fiber: 1.5, sugars: 0.8, sodium: 10547 },
+      coverage: { counted: 1, total: 2 },
+      ingredients: [],
+    };
+    get.mockResolvedValueOnce(ok(estimate));
+    await expect(recipesApi.getNutrition('52772')).resolves.toEqual(estimate);
+    expect(get).toHaveBeenCalledWith('/api/recipes/52772/nutrition', { timeout: NUTRITION_TIMEOUT_MS });
+  });
+
+  it('getNutrition allows longer than the default request timeout', () => {
+    // A cold estimate makes many USDA calls server-side; single calls were
+    // seen taking 9 s, and the backend's own per-call timeout is 15 s.
+    expect(NUTRITION_TIMEOUT_MS).toBeGreaterThanOrEqual(30000);
+  });
+
+  it('getNutrition reports a timed-out estimate as unavailable, not as a connection problem', async () => {
+    get.mockRejectedValueOnce(new AxiosError('timeout of 30000ms exceeded', 'ECONNABORTED', requestConfig(), {}));
+    const error = await rejectionOf(recipesApi.getNutrition('52772'));
+    expect(error.kind).toBe('unavailable');
+    expect(error.message).toBe(NUTRITION_UNAVAILABLE_MESSAGE);
+  });
+
+  it('getNutrition maps a 503 to the nutrition message, not the recipes one', async () => {
+    get.mockRejectedValueOnce(httpError(503, { error: 'nutrition is temporarily unavailable, please try again shortly' }));
+    const error = await rejectionOf(recipesApi.getNutrition('52772'));
+    expect(error.kind).toBe('unavailable');
+    expect(error.message).toBe(NUTRITION_UNAVAILABLE_MESSAGE);
+    expect(error.status).toBe(503);
+  });
+
+  it('getNutrition maps a 404 like the recipe call', async () => {
+    get.mockRejectedValueOnce(httpError(404, { error: 'recipe not found' }));
+    expect((await rejectionOf(recipesApi.getNutrition('99999'))).kind).toBe('notFound');
   });
 });

@@ -37,7 +37,8 @@ test.describe('Recipe detail (TheMealDB via /api/recipes/:id)', () => {
       'href',
       'https://www.youtube.com/watch?v=4aZr5hZXP_s',
     );
-    await expect(page.getByText('Nutrition information coming soon')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Nutrition (estimate) · whole recipe' })).toBeVisible();
+    await expect(page.getByText('Nutrition information coming soon')).toHaveCount(0);
     await expect(page.getByText(/servings|Prep Time|Cook Time|Total Time/)).toHaveCount(0);
   });
 

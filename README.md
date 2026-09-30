@@ -18,7 +18,14 @@ A React + TypeScript single-page app for planning a week of meals. You can sign 
 - **Browse (`/recipes`):** opens on a grid of categories with photos. You can search by name and filter by category, cuisine and main ingredient. Results are paged (24 per page), and the filters are kept in the URL, so Back returns to the same results. The page has loading, empty and error states; errors come with a Retry button.
 - **Recipe detail (`/recipes/:id`):** the photo, category, cuisine and tags, ingredients with their measures, and step-by-step instructions. It links to "Watch on YouTube" and the original recipe when TheMealDB has them, and shows up to four similar recipes from the same category. There are share (Web Share API, falling back to the clipboard), print and favourite buttons.
 - **Favourites (`/favorites`):** saved per user in `localStorage` as TheMealDB ids. You can search by name, filter by category, and sort by recently added or by name.
-- Each recipe's details are fetched at most once per browser session (an in-memory cache in `src/services/recipes/recipeData.ts`).
+- **Nutrition (on the recipe page):** a whole-recipe estimate from the backend's `GET /api/recipes/:id/nutrition`, which matches each ingredient to USDA FoodData Central. The card shows:
+  - calories, protein, carbs, fat, fibre, sugars and sodium
+  - how many ingredients were counted ("Based on 9 of 9 ingredients")
+  - "at least" for nutrients some ingredients didn't report, and a warning when fewer than half the ingredients could be measured
+  - an ingredient breakdown giving each line's matched USDA food, or why it wasn't counted
+
+  The card only formats the API's figures. If nutrition is unavailable, the card shows its own error with Retry and the rest of the page is unaffected.
+- Each recipe's details and nutrition estimate are fetched at most once per browser session (an in-memory cache in `src/services/recipes/recipeData.ts`).
 
 ### Weekly meal planning (`/meal-plan`, client-side)
 - A Sunday-to-Saturday calendar with four meal slots per day, previous/next/this-week navigation and a highlight on today.
@@ -123,11 +130,17 @@ If `VITE_API_URL` is unset, the code falls back to that same value. To point at 
 - the per-session cache;
 - favourites storage, including dropping old ids;
 - the meal-slot shape;
-- the suggestion rules.
+- the suggestion rules;
+- the nutrition view: units, "at least" wording, and partial and none estimates.
 
 **End-to-end tests** (Playwright, `tests/`):
 
 - `recipes.spec.ts`, `recipe-detail.spec.ts`, `favorites.spec.ts`, `meal-plan-recipes.spec.ts` and `suggestions.spec.ts` cover each recipe screen, including loading, empty, error (503 and network), expired-session and old-data cases.
+- `nutrition.spec.ts` covers the nutrition card:
+  - full, incomplete, partial and none estimates
+  - the ingredient breakdown
+  - a nutrition outage with Retry, while the recipe itself still renders
+  - fetching once per session
 - `epic2-meal-planning.spec.ts` covers the weekly calendar, the recipe picker, suggestions, copy day, clear plan and a full planning flow.
 - `epic1-authentication.spec.ts` covers registration, login, onboarding and an end-to-end auth flow.
 
@@ -139,7 +152,7 @@ The recipe and meal-planning specs are hermetic. `tests/helpers/recipes.fixtures
 
 This is an active work in progress. Known gaps:
 
-- **Fields TheMealDB does not provide are not shown.** These were removed: cooking times, ratings and review counts, servings (and the serving adjuster), dietary labels and the dietary filter, and the time, rating and popularity sorts. The detail page's nutrition panel says "Nutrition information coming soon"; nutrition from USDA data is planned.
+- **Fields TheMealDB does not provide are not shown.** These were removed: cooking times, ratings and review counts, servings (and the serving adjuster), dietary labels and the dietary filter, and the time, rating and popularity sorts. Nutrition is a whole-recipe estimate: TheMealDB gives no serving count, so there are no per-serving figures.
 - **Data saved before the switch to TheMealDB:**
   - Favourites saved with the old sample-recipe ids are dropped the first time favourites load.
   - Old meal-plan slots still show their saved name and picture, but opening one says "This recipe is no longer available".
@@ -150,7 +163,6 @@ This is an active work in progress. Known gaps:
 
 ## Roadmap (not yet built)
 
-- Nutrition facts from USDA FoodData Central
 - Save meal plans and favourites to the backend instead of `localStorage`
 - Shopping lists generated from the week's plan
 - A user preferences and profile page (the backend already has profile, password and preference endpoints)
@@ -158,4 +170,4 @@ This is an active work in progress. Known gaps:
 
 ## Credits
 
-Recipe data and images from [TheMealDB](https://www.themealdb.com). The public API key the backend uses is for development and educational use.
+Recipe data and images from [TheMealDB](https://www.themealdb.com). The public API key the backend uses is for development and educational use. Nutrition data from [USDA FoodData Central](https://fdc.nal.usda.gov/).

@@ -48,6 +48,38 @@ export interface RecipeCategory {
   description: string;
 }
 
+/** The seven nutrients the estimate totals, as named in the API. */
+export type NutrientKey = 'calories' | 'protein' | 'carbohydrate' | 'fat' | 'fiber' | 'sugars' | 'sodium';
+
+/** Whole-recipe totals: calories in kcal and sodium in mg (integers), the rest in grams to one decimal. */
+export type NutritionTotals = Record<NutrientKey, number>;
+
+/**
+ * One ingredient line of the estimate. A counted line always has `grams`,
+ * and has `calories` whenever USDA reports energy for the food (0 included).
+ * A notCounted line has neither, and says why in `reason`.
+ */
+export interface NutritionIngredient {
+  name: string;
+  measure: string;
+  status: 'counted' | 'notCounted';
+  grams?: number;
+  food?: { fdcId: number; description: string };
+  calories?: number;
+  reason?: 'unmeasurable' | 'noMatch' | 'noPortion';
+}
+
+/** GET /api/recipes/:id/nutrition: an estimate from USDA FoodData Central. */
+export interface RecipeNutrition {
+  recipeId: string;
+  source: string;
+  totals: NutritionTotals;
+  /** Nutrients some counted ingredient lacked, so their totals may be low. */
+  incomplete?: NutrientKey[];
+  coverage: { counted: number; total: number };
+  ingredients: NutritionIngredient[];
+}
+
 /** Query for GET /api/recipes; at least one of q/category/cuisine/ingredient is required. */
 export interface RecipeQuery {
   q?: string;
