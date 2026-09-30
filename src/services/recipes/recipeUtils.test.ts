@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterOptions, isRecipeId, pickSimilar, previewImage } from './recipeUtils';
+import { filterOptions, isRecipeId, listedSpelling, pickSimilar, previewImage } from './recipeUtils';
 
 describe('isRecipeId', () => {
   it('accepts TheMealDB ids only', () => {
@@ -51,5 +51,21 @@ describe('filterOptions', () => {
 
   it('keeps a current value that is not (yet) in the list', () => {
     expect(filterOptions('All categories', ['Beef'], 'Goat').map((o) => o.value)).toEqual(['', 'Beef', 'Goat']);
+  });
+});
+
+describe('listedSpelling', () => {
+  const cuisines = ['American', 'New Zealand', 'Japanese'];
+
+  it('finds the listed spelling ignoring case, spaces and "_"', () => {
+    expect(listedSpelling(cuisines, 'japanese')).toBe('Japanese');
+    expect(listedSpelling(cuisines, ' AMERICAN ')).toBe('American');
+    expect(listedSpelling(cuisines, 'new_zealand')).toBe('New Zealand');
+    expect(listedSpelling(cuisines, 'new   zealand')).toBe('New Zealand');
+  });
+
+  it('is undefined for an unlisted or blank value', () => {
+    expect(listedSpelling(cuisines, 'Martian')).toBeUndefined();
+    expect(listedSpelling(cuisines, '  ')).toBeUndefined();
   });
 });

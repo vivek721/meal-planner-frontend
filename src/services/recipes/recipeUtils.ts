@@ -31,3 +31,15 @@ export function filterOptions(allLabel: string, values: string[], current: strin
   const list = current && !values.includes(current) ? [...values, current] : values;
   return [{ value: '', label: allLabel }, ...list.map((value) => ({ value, label: value }))];
 }
+
+const normalizeName = (value: string) => value.trim().toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ');
+
+/**
+ * The listed spelling of a hand-typed filter value ("beef" → "Beef"), matched
+ * the way TheMealDB matches: ignoring case, with "_" as a space. Undefined when
+ * the list has no such value.
+ */
+export function listedSpelling(values: string[], value: string): string | undefined {
+  const wanted = normalizeName(value);
+  return wanted ? values.find((v) => normalizeName(v) === wanted) : undefined;
+}

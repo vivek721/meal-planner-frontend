@@ -149,6 +149,42 @@ test.describe('Recipes page (TheMealDB via /api/recipes)', () => {
     await expect(cards).toHaveCount(1);
     await expect(cards).toContainText('Beef and Mustard Pie');
   });
+
+  test.describe('hand-typed URLs', () => {
+    test('a page past the end moves to the last page', async ({ page }) => {
+      await page.goto('/recipes?category=Miscellaneous&page=9');
+      await expect(page).toHaveURL(/page=2(&|$)/);
+      await expect(page.getByTestId('recipe-card')).toHaveCount(6);
+      await expect(page.getByText('Page 2 of 2')).toBeVisible();
+      await expect(page.getByText('No recipes found')).toHaveCount(0);
+    });
+
+    for (const bad of ['abc', '0', '-2', '1.5']) {
+      test(`an invalid page number (${bad}) is dropped from the URL`, async ({ page }) => {
+        await page.goto(`/recipes?category=Chicken&page=${bad}`);
+        await expect(page).not.toHaveURL(/page=/);
+        await expect(page).toHaveURL(/category=Chicken/);
+        await expect(page.getByTestId('recipe-card')).toHaveCount(3);
+      });
+    }
+
+    test('a category or cuisine in the wrong case is corrected to its listed spelling', async ({ page }) => {
+      await page.goto('/recipes?category=chicken&cuisine=JAPANESE');
+      await expect(page).toHaveURL(/category=Chicken/);
+      await expect(page).toHaveURL(/cuisine=Japanese/);
+      const category = page.getByLabel('Category', { exact: true });
+      await expect(category).toHaveValue('Chicken');
+      await expect(category.locator('option', { hasText: /^chicken$/ })).toHaveCount(0);
+      await expect(page.getByLabel('Cuisine', { exact: true })).toHaveValue('Japanese');
+      await expect(page.getByTestId('recipe-card')).toHaveCount(1);
+    });
+
+    test('an over-long search explains the limit and offers no Retry', async ({ page }) => {
+      await page.goto(`/recipes?q=${'a'.repeat(101)}`);
+      await expect(page.getByTestId('error-panel')).toContainText('at most 100 characters');
+      await expect(page.getByRole('button', { name: 'Retry' })).toHaveCount(0);
+    });
+  });
 });
 
 test.describe('Onboarding copy', () => {
