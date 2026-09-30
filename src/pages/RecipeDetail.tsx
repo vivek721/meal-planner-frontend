@@ -199,7 +199,7 @@ export const RecipeDetail: React.FC = () => {
 
           {/* Right Column - Nutrition & Similar */}
           <div className="space-y-8">
-            <NutritionCard />
+            <NutritionCard recipeId={recipe.id} />
 
             {similarRecipes.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm p-6" data-testid="similar-recipes">
